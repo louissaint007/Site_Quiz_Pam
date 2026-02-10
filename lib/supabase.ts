@@ -5,8 +5,8 @@ import { createClient } from '@supabase/supabase-js';
  * REMPLACEZ CES VALEURS PAR VOS PROPRES CLÉS SUPABASE.
  * Allez dans votre Dashboard Supabase -> Project Settings -> API
  */
-const supabaseUrl = 'https://xjeebxlmlhlejyjzygap.supabase.co'; // Remplacez par votre URL réelle
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqZWVieGxtbGhsZWp5anp5Z2FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1Njc1NDAsImV4cCI6MjA4NTE0MzU0MH0.jEPUvqtytP3GdD-3Wwzn9kfcEht1BL-ngRfwyz8RTxU';      // Remplacez par votre clé réelle
+const supabaseUrl = 'https://zhmrcmrfcztvfnndrowx.supabase.co'; // Remplacez par votre URL réelle
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpobXJjbXJmY3p0dmZubmRyb3d4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3ODYxOTksImV4cCI6MjA4NTM2MjE5OX0.5foS3Npv1azsbDdD5K1sBGsRJtYHTs0XdbQqgJ9XyzE';      // Remplacez par votre clé réelle
 
 
 // Fonction de validation pour éviter l'erreur "Invalid URL" au démarrage
