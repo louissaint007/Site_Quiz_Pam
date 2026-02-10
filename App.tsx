@@ -145,6 +145,16 @@ const App: React.FC = () => {
     let isMounted = true;
     const initAuth = async () => {
       console.log("[INIT] Step 1: getSession starting...");
+
+      // Safety Timeout: If loading takes more than 5 seconds, force it to false
+      const timeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.warn("[INIT] Safety timeout triggered: forcing isLoading to false");
+          setIsLoading(false);
+          setError("Koneksyon an pran yon ti tan... Verifikasyon an ap kontinye.");
+        }
+      }, 5000);
+
       try {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         console.log("[INIT] Step 1: getSession finished. Session exists:", !!currentSession);
@@ -170,6 +180,7 @@ const App: React.FC = () => {
       } catch (err) {
         console.error("[INIT] Global initialization error:", err);
       } finally {
+        clearTimeout(timeoutId);
         if (isMounted) {
           console.log("[INIT] Initialization finished, setting loading to false");
           setIsLoading(false);
