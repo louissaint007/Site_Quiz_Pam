@@ -1,0 +1,5 @@
+{
+  "name": "QuizPam",
+  "description": "Une plateforme de quiz compétitive haïtienne avec concours à prix monétaires, mode solo progressif et génération de questions assistée par IA.",
+  "requestFramePermissions": []
+}
