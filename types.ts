@@ -61,11 +61,15 @@ export interface Contest {
   id: string;
   title: string;
   category_filter?: string;
-  entry_fee_htg: number;
+  entry_fee: number;
+  entry_fee_htg?: number; // Keep for compatibility during transition
   min_participants: number;
   current_participants: number;
-  status: 'pending' | 'active' | 'finished';
+  status: 'pending' | 'active' | 'finished' | 'scheduled';
   grand_prize?: number;
+  total_prize_pool?: number;
+  winners_count?: number;
+  difficulty_filter?: number;
   image_url?: string;
   admin_margin_percent: number;
   first_prize_percent?: number;
@@ -97,4 +101,14 @@ export interface AdminStats {
   totalRevenue: number;
   activeContests: number;
   totalQuestions: number;
+}
+
+export interface Review {
+  id: string;
+  user_id: string;
+  username?: string;
+  avatar_url?: string;
+  rating: number;
+  comment: string;
+  created_at: string;
 }

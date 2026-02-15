@@ -10,13 +10,14 @@ import Auth from './components/Auth';
 import ProfileView from './components/ProfileView';
 import ContestDetailView from './components/ContestDetailView';
 import FinalistArena from './components/FinalistArena';
+import Reviews from './components/Reviews';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 
 const MONCASH_GATEWAY_URL = 'https://page-moncash-quiz-pam.vercel.app/';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
-  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena'>('landing');
+  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena' | 'reviews'>('landing');
   const [adminTab, setAdminTab] = useState<'stats' | 'questions' | 'contests'>('stats');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -143,63 +144,75 @@ const App: React.FC = () => {
 
   useEffect(() => {
     let isMounted = true;
+
     const initAuth = async () => {
       console.log("[INIT] Step 1: getSession starting...");
 
-      // Safety Timeout: If loading takes more than 5 seconds, force it to false
-      const timeoutId = setTimeout(() => {
-        if (isMounted) {
-          console.warn("[INIT] Safety timeout triggered: forcing isLoading to false");
-          setIsLoading(false);
-          setError("Koneksyon an pran yon ti tan... Verifikasyon an ap kontinye.");
-        }
-      }, 5000);
-
       try {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        console.log("[INIT] Step 1: getSession finished. Session exists:", !!currentSession);
+        console.log("[INIT] getSession result:", !!currentSession);
+
         if (error) console.warn("[INIT] Get session error:", error);
 
         if (!isMounted) return;
         setSession(currentSession);
 
+        // Turn off loading as soon as we have the session (logged in or guest)
+        // This allows the UI to mount while data fetches happen in background
+        setIsLoading(false);
+
         if (currentSession) {
-          console.log("[INIT] Step 2: Fetching data for session...");
-          await Promise.all([
-            fetchContests().catch(e => console.error("fetchContests error:", e)),
-            fetchUserAndWallet(currentSession.user.id, currentSession).catch(e => console.error("fetchUserAndWallet error:", e))
-          ]);
-          console.log("[INIT] Step 2: Data fetch finished.");
+          console.log("[INIT] Step 2: Fetching user data AND contests (background)...");
+          // Fire and forget (don't await) so UI can show up immediately
+          fetchContests().catch(e => console.error("fetchContests error:", e));
+          fetchUserAndWallet(currentSession.user.id, currentSession).catch(e => console.error("fetchUserAndWallet error:", e));
           syncPending().catch(e => console.error("syncPending error:", e));
         } else {
-          console.log("[INIT] Step 2: Fetching contests only...");
-          await fetchContests().catch(e => console.error("fetchContests error:", e));
-          console.log("[INIT] Step 2: Contest fetch finished.");
+          console.log("[INIT] Step 2: Fetching contests (Guest, background)...");
+          fetchContests().catch(e => console.error("fetchContests error:", e));
         }
 
-      } catch (err) {
+      } catch (err: any) {
         console.error("[INIT] Global initialization error:", err);
-      } finally {
-        clearTimeout(timeoutId);
-        if (isMounted) {
-          console.log("[INIT] Initialization finished, setting loading to false");
-          setIsLoading(false);
-        }
+        setIsLoading(false); // Fail-safe
       }
     };
+
+    // Failsafe timeout: Force loading to false after 6 seconds no matter what
+    const failsafe = setTimeout(() => {
+      if (isMounted && isLoading) {
+        console.log("[INIT] Failsafe timeout triggered: forcing isLoading to false");
+        setIsLoading(false);
+      }
+    }, 6000);
+
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
-      console.log("[INIT] Auth state changed:", _event);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log("[INIT] Auth state changed:", event);
+      if (!isMounted) return;
+
       setSession(currentSession);
+
       if (currentSession) {
-        await fetchUserAndWallet(currentSession.user.id, currentSession).catch(e => console.error("AuthChange fetch error:", e));
+        // Refresh data if user changed or was missing
+        if (!user || user.id !== currentSession.user.id) {
+          fetchUserAndWallet(currentSession.user.id, currentSession).catch(e => console.error("AuthChange fetch error:", e));
+        }
+      } else {
+        setUser(null);
+        setWallet(null);
       }
-      setIsLoading(false);
+
+      // Always ensure loading is false on major auth events
+      if (isLoading) {
+        setIsLoading(false);
+      }
     });
 
     return () => {
       isMounted = false;
+      clearTimeout(failsafe);
       subscription.unsubscribe();
     };
   }, [fetchContests]);
@@ -310,15 +323,22 @@ const App: React.FC = () => {
 
   const redirectToMonCash = (amount: number, type: 'deposit' | 'contest_entry', contestId?: string) => {
     if (!user) { setView('auth'); return; }
+
+    // Generate a unique orderId for this transaction
+    const orderId = `${type === 'deposit' ? 'DEP' : 'ENT'}-${Date.now()}-${user.id.slice(0, 5)}`;
+
     const params = new URLSearchParams({
       userId: user.id,
       username: user.username,
       amount: amount.toString(),
+      orderId: orderId, // Pass the generated orderId
       type: type,
       description: type === 'deposit' ? 'Depo Balans QuizPam' : `Antre Konkou`,
     });
     if (contestId) params.append('contestId', contestId);
-    window.location.href = `${MONCASH_GATEWAY_URL}?${params.toString()}`;
+
+    const url = `${MONCASH_GATEWAY_URL}?${params.toString()}`;
+    window.open(url, '_blank'); // Open in new tab
   };
 
   if (isLoading) return (
@@ -359,6 +379,7 @@ const App: React.FC = () => {
 
             {session && user && (
               <div className="hidden md:flex items-center space-x-4">
+                <button onClick={() => setView('reviews')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Avis</button>
                 {user.is_admin && (
                   <button onClick={() => setView('admin')} className="text-[10px] font-black uppercase tracking-widest bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl transition-colors">Admin</button>
                 )}
@@ -369,7 +390,10 @@ const App: React.FC = () => {
             )}
 
             {!session && (
-              <button onClick={() => setView('auth')} className="hidden md:block text-[10px] font-black uppercase tracking-widest bg-blue-600 px-6 py-2.5 rounded-xl shadow-lg hover:bg-blue-500 transition-all">Koneksyon</button>
+              <div className="hidden md:flex items-center space-x-4">
+                <button onClick={() => setView('reviews')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Avis</button>
+                <button onClick={() => setView('auth')} className="text-[10px] font-black uppercase tracking-widest bg-blue-600 px-6 py-2.5 rounded-xl shadow-lg hover:bg-blue-500 transition-all">Koneksyon</button>
+              </div>
             )}
 
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2 text-white bg-slate-800 rounded-xl">
@@ -389,6 +413,7 @@ const App: React.FC = () => {
           <div className="space-y-4 flex-1 overflow-y-auto">
             <button onClick={() => { setView('landing'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Landing <span>🌐</span></button>
             <button onClick={() => { setView('home'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Lobby <span>🏠</span></button>
+            <button onClick={() => { setView('reviews'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Avis Kliyan <span>💬</span></button>
             {user && (
               <>
                 <button onClick={() => { setView('profile'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Profil & Depo <span>💰</span></button>
@@ -476,12 +501,15 @@ const App: React.FC = () => {
         )}
 
         {view === 'auth' && <Auth onAuthComplete={() => setView('home')} />}
-        {view === 'profile' && user && <ProfileView user={user} wallet={wallet} onBack={() => setView('home')} onDeposit={() => redirectToMonCash(500, 'deposit')} />}
+        {view === 'profile' && user && <ProfileView user={user} wallet={wallet} onBack={() => setView('home')} onDeposit={(amount) => redirectToMonCash(amount, 'deposit')} />}
         {view === 'contest-detail' && selectedContest && (
-          <ContestDetailView contest={selectedContest} userBalance={wallet?.total_balance || 0} onBack={() => setView('home')} onJoin={() => redirectToMonCash(selectedContest.entry_fee_htg, 'contest_entry', selectedContest.id)} />
+          <ContestDetailView contest={selectedContest} userBalance={wallet?.total_balance || 0} onBack={() => setView('home')} onJoin={() => redirectToMonCash(selectedContest.entry_fee || selectedContest.entry_fee_htg || 0, 'contest_entry', selectedContest.id)} />
         )}
         {view === 'finalist-arena' && selectedContest && (
           <FinalistArena contestTitle={selectedContest.title} onStartFinal={() => startGame('finalist')} />
+        )}
+        {view === 'reviews' && (
+          <Reviews user={user} />
         )}
 
         {view === 'home' && (
@@ -508,7 +536,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="p-6 space-y-4">
                     <div className="flex justify-between">
-                      <span className="text-yellow-400 font-black">{c.entry_fee_htg} HTG</span>
+                      <span className="text-yellow-400 font-black">{(c.entry_fee || c.entry_fee_htg || 0)} HTG</span>
                       <span className="text-green-400 font-black">Pool: {c.grand_prize} HTG</span>
                     </div>
                     <button onClick={() => { setSelectedContest(c); setView('contest-detail'); }} className="w-full py-4 bg-blue-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest hover:bg-blue-500 transition-colors">Patisipe</button>
