@@ -324,8 +324,8 @@ const App: React.FC = () => {
   const redirectToMonCash = (amount: number, type: 'deposit' | 'contest_entry', contestId?: string) => {
     if (!user) { setView('auth'); return; }
 
-    // Generate a unique orderId for this transaction
-    const orderId = `${type === 'deposit' ? 'DEP' : 'ENT'}-${Date.now()}-${user.id.slice(0, 5)}`;
+    // Generate a unique UUID for the transactions table id
+    const orderId = crypto.randomUUID();
 
     const params = new URLSearchParams({
       userId: user.id,
