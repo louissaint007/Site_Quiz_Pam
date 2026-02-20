@@ -1,0 +1,702 @@
+[
+    {
+        "table_name": "achievements",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+    },
+    {
+        "table_name": "achievements",
+        "column_name": "name",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "achievements",
+        "column_name": "description",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "achievements",
+        "column_name": "icon_url",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "achievements",
+        "column_name": "xp_reward",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "100"
+    },
+    {
+        "table_name": "contest_final_rounds",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+    },
+    {
+        "table_name": "contest_final_rounds",
+        "column_name": "contest_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contest_final_rounds",
+        "column_name": "round_number",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "1"
+    },
+    {
+        "table_name": "contest_final_rounds",
+        "column_name": "participant_ids",
+        "data_type": "ARRAY",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contest_final_rounds",
+        "column_name": "is_active",
+        "data_type": "boolean",
+        "is_nullable": "YES",
+        "column_default": "true"
+    },
+    {
+        "table_name": "contest_final_rounds",
+        "column_name": "started_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "contest_participants",
+        "column_name": "contest_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "contest_participants",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "contest_participants",
+        "column_name": "score",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "contest_participants",
+        "column_name": "completed_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contest_participants",
+        "column_name": "status",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": "'joined'::text"
+    },
+    {
+        "table_name": "contest_registrations",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+    },
+    {
+        "table_name": "contest_registrations",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contest_registrations",
+        "column_name": "contest_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contest_registrations",
+        "column_name": "paid_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "contest_registrations",
+        "column_name": "final_score",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "contest_registrations",
+        "column_name": "completion_time_ms",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contest_registrations",
+        "column_name": "total_time_ms",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "contest_registrations",
+        "column_name": "is_finalist",
+        "data_type": "boolean",
+        "is_nullable": "YES",
+        "column_default": "false"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "title",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "entry_fee",
+        "data_type": "numeric",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "min_participants",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "current_participants",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "total_prize_pool",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "status",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": "'scheduled'::text"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "start_time",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "admin_margin_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "50.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "first_prize_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "20.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "second_prize_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "8.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "third_prize_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "2.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "image_url",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "grand_prize",
+        "data_type": "bigint",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "fourth_prize_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "0.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "fifth_prize_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "0.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "sixth_prize_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "0.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "seventh_prize_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "0.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "eighth_prize_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "0.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "ninth_prize_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "0.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "tenth_prize_percent",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "0.0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "winners_count",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "3"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "category_filter",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": "'Tous'::text"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "difficulty_filter",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "1"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "pool_questions_ids",
+        "data_type": "ARRAY",
+        "is_nullable": "YES",
+        "column_default": "'{}'::uuid[]"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "scheduled_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "question_count",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "10"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "max_participants",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "questions_count_to_draw",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "20"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "questions_ids",
+        "data_type": "ARRAY",
+        "is_nullable": "YES",
+        "column_default": "'{}'::uuid[]"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "ends_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "media_type",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": "'image'::text"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "media_url",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "prize_description",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "prize_amount",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "contests",
+        "column_name": "prize_image_url",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "contests",
+        "column_name": "prize_type",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": "'cash'::text"
+    },
+    {
+        "table_name": "game_sessions",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+    },
+    {
+        "table_name": "game_sessions",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "game_sessions",
+        "column_name": "contest_id",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "game_sessions",
+        "column_name": "questions_ids",
+        "data_type": "ARRAY",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "game_sessions",
+        "column_name": "current_index",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "game_sessions",
+        "column_name": "is_completed",
+        "data_type": "boolean",
+        "is_nullable": "YES",
+        "column_default": "false"
+    },
+    {
+        "table_name": "game_sessions",
+        "column_name": "started_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "game_sessions",
+        "column_name": "score",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "game_sessions",
+        "column_name": "total_time_ms",
+        "data_type": "bigint",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "levels_config",
+        "column_name": "level_number",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "levels_config",
+        "column_name": "xp_required",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "levels_config",
+        "column_name": "title",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "username",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "wallet_balance",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "level",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "1"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "xp",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "is_admin",
+        "data_type": "boolean",
+        "is_nullable": "YES",
+        "column_default": "false"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "email",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "phone_number",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "balance_htg",
+        "data_type": "numeric",
+        "is_nullable": "YES",
+        "column_default": "0.0"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "honorary_title",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": "'Novice'::text"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "full_name",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "total_xp",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "current_level",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "1"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "avatars_url",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "questions",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+    },
+    {
+        "table_name": "questions",
+        "column_name": "category",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "questions",
+        "column_name": "question_text",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "questions",
+        "column_name": "options",
+        "data_type": "jsonb",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "questions",
+        "column_name": "correct_index",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "questions",
+        "column_name": "difficulty_level",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "1"
+    },
+    {
+        "table_name": "questions",
+        "column_name": "is_for_contest",
+        "data_type": "boolean",
+        "is_nullable": "YES",
+        "column_default": "false"
+    },
+    {
+        "table_name": "questions",
+        "column_name": "tags",
+        "data_type": "ARRAY",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "questions",
+        "column_name": "sub_category",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "questions",
+        "column_name": "difficulty",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": "1"
+    },
+    {
+        "table_name": "questions",
+        "column_name": "is_for_solo",
+        "data_type": "boolean",
+        "is_nullable": "YES",
+        "column_default": "true"
+    }
+]

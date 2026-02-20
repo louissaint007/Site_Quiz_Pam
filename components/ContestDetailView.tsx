@@ -5,17 +5,23 @@ import { Contest } from '../types';
 interface ContestDetailViewProps {
   contest: Contest;
   userBalance: number;
+  isJoined?: boolean;
   onBack: () => void;
   onJoin: (id: string) => void;
+  onGoToMyContests?: () => void;
+  onPrizeClick?: (url: string) => void;
 }
 
-const ContestDetailView: React.FC<ContestDetailViewProps> = ({ contest, userBalance, onBack, onJoin }) => {
+const ContestDetailView: React.FC<ContestDetailViewProps> = ({ contest, userBalance, isJoined, onBack, onJoin, onGoToMyContests, onPrizeClick }) => {
   const prizePool = contest.grand_prize || 0;
-  const entryFee = contest.entry_fee || contest.entry_fee_htg || 0;
+  const entryFee = contest.entry_fee || 0;
   const canAfford = userBalance >= entryFee;
+  const isObjectPrize = contest.prize_type === 'object';
+  const targetParticipants = (contest.max_participants && contest.max_participants > 0) ? contest.max_participants : (contest.min_participants || 1);
+  const progress = Math.min(100, ((contest.current_participants || 0) / targetParticipants) * 100);
 
   // Calculer un "Pousantaj Preferans" fictif basé sur le remplissage pour le marketing
-  const preferencePercent = Math.min(99, Math.floor(((contest.current_participants || 0) / (contest.min_participants || 1)) * 100) + 12);
+  const preferencePercent = Math.min(99, Math.floor(((contest.current_participants || 0) / targetParticipants) * 100) + 12);
 
   // Liste complète des prix calculés sur le pool (1 à 10)
   const prizes = [
@@ -36,17 +42,22 @@ const ContestDetailView: React.FC<ContestDetailViewProps> = ({ contest, userBala
       <div className="relative mb-8">
         <button
           onClick={onBack}
-          className="absolute top-6 left-6 z-10 p-3 bg-slate-900/60 backdrop-blur-md hover:bg-slate-900 rounded-2xl text-white border border-white/10 transition-all group"
+          className="absolute top-6 left-6 z-20 p-3 bg-slate-900/60 backdrop-blur-md hover:bg-slate-900 rounded-2xl text-white border border-white/10 transition-all group"
         >
           <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         </button>
 
-        <div
-          className="h-64 md:h-80 w-full rounded-[3rem] bg-slate-800 bg-cover bg-center border border-slate-700 overflow-hidden relative shadow-2xl"
-          style={contest.image_url ? { backgroundImage: `linear-gradient(to bottom, transparent, rgba(15, 23, 42, 0.95)), url(${contest.image_url})` } : {}}
-        >
+        <div className="h-64 md:h-80 w-full rounded-[3rem] bg-slate-800 border border-slate-700 overflow-hidden relative shadow-2xl">
+          {contest.media_type === 'video' || (contest.image_url?.endsWith('.mp4')) ? (
+            <video src={contest.image_url} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `linear-gradient(to bottom, transparent, rgba(15, 23, 42, 0.95)), url(${contest.image_url})` }} />
+          )}
+
           {!contest.image_url && <div className="absolute inset-0 flex items-center justify-center text-9xl opacity-5">🏆</div>}
-          <div className="absolute bottom-10 left-10 right-10">
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+
+          <div className="absolute bottom-10 left-10 right-10 z-10">
             <div className="flex items-center gap-3 mb-4">
               <span className="bg-red-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-lg animate-pulse">
                 {contest.status === 'active' ? 'AN KOU KOUNYE A' : 'AP TANN JWÈ'}
@@ -62,12 +73,51 @@ const ContestDetailView: React.FC<ContestDetailViewProps> = ({ contest, userBala
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
+          {/* Golden Progress Bar Section */}
+          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-8 rounded-[2.5rem] shadow-xl">
+            <div className="space-y-4">
+              <div className="flex justify-between items-end mb-2">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest italic">Estati Konkou a</h3>
+                </div>
+              </div>
+              <div className="h-4 w-full bg-slate-900/60 rounded-full border border-white/5 overflow-hidden p-1">
+                <div
+                  className="h-full bg-gradient-to-r from-yellow-700 via-yellow-400 to-yellow-700 rounded-full shadow-[0_0_20px_rgba(250,204,21,0.5)] animate-pulse transition-all duration-1000"
+                  style={{ width: `${Math.max(2, progress)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Section Distribution des Prix */}
           <section className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-8 rounded-[2.5rem] shadow-xl">
             <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-6 flex items-center gap-3">
               <span className="w-2 h-8 bg-green-500 rounded-full"></span>
               Gwo rekonpans yo
             </h3>
+
+            {isObjectPrize && (
+              <div className="mb-8 p-6 bg-slate-900/40 rounded-[2rem] border-2 border-yellow-500/20 flex flex-col md:flex-row gap-8 items-center">
+                <div
+                  className="w-full md:w-48 h-48 bg-slate-800 rounded-3xl overflow-hidden border border-white/10 relative group cursor-zoom-in"
+                  onClick={() => onPrizeClick && contest.prize_image_url && onPrizeClick(contest.prize_image_url)}
+                >
+                  <img src={contest.prize_image_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Prize" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Wè an Gwo</span>
+                  </div>
+                </div>
+                <div className="flex-1 space-y-4 text-center md:text-left">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest italic">Gwo Pri Konkou a</span>
+                    <h4 className="text-2xl font-black text-white uppercase leading-tight">{contest.prize_description}</h4>
+                  </div>
+                  <p className="text-sm text-slate-400 font-medium leading-relaxed">Peye sèlman {entryFee} HTG pou chans ou genyen bèl kado sa a !</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {prizes.map((p, i) => (
                 <div key={i} className="bg-slate-900/60 p-5 rounded-3xl border border-slate-700 flex items-center justify-between group hover:border-blue-500/50 transition-all">
@@ -78,14 +128,13 @@ const ContestDetailView: React.FC<ContestDetailViewProps> = ({ contest, userBala
                     <span className="font-black uppercase text-xs text-slate-400 tracking-widest">{p.label}</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-black text-white">{(prizePool * (p.percent || 0) / 100).toLocaleString()} HTG</div>
+                    <div className="text-xl font-black text-white">
+                      {(i === 0 && isObjectPrize) ? 'OBJÈ' : `${(prizePool * (p.percent || 0) / 100).toLocaleString()} HTG`}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-            {prizes.length === 0 && (
-              <p className="text-center text-slate-500 italic py-4">Pa gen pri ki konfigirasyon pou plas sa yo.</p>
-            )}
           </section>
 
           {/* Section Règles */}
@@ -98,8 +147,7 @@ const ContestDetailView: React.FC<ContestDetailViewProps> = ({ contest, userBala
               {[
                 "Chak kesyon gen yon limit tan (10 segonn).",
                 "Plis ou reponn vit, plis ou fè pwen.",
-                "Ou dwe reponn omwen 70% kesyon yo byen pou w kalifye.",
-                "Konkou a ap kòmanse lè limit preferans la atenn."
+                "Ou dwe reponn omwen 70% kesyon yo byen pou w kalifye."
               ].map((rule, i) => (
                 <li key={i} className="flex items-start gap-4 text-slate-300">
                   <div className="w-6 h-6 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
@@ -124,36 +172,38 @@ const ContestDetailView: React.FC<ContestDetailViewProps> = ({ contest, userBala
 
             <div className="space-y-4 mb-8">
               <div className="flex justify-between items-center bg-slate-900/50 p-4 rounded-2xl border border-slate-700">
-                <span className="text-[10px] font-black text-slate-500 uppercase">Pool Total</span>
-                <span className="text-sm font-black text-green-400">{(prizePool).toLocaleString()} HTG</span>
-              </div>
-              <div className="flex justify-between items-center bg-slate-900/50 p-4 rounded-2xl border border-slate-700">
-                <span className="text-[10px] font-black text-slate-500 uppercase">Preferans</span>
-                <span className="text-sm font-black text-white">{preferencePercent}%</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase">Pri total</span>
+                <span className="text-sm font-black text-green-400 truncate ml-2">
+                  {isObjectPrize ? 'OBJÈ + CASH' : `${prizePool.toLocaleString()} HTG`}
+                </span>
               </div>
             </div>
 
-            {!canAfford && (
+            {!canAfford && !isJoined && (
               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl mb-4 text-center">
                 <p className="text-[10px] font-black text-red-500 uppercase leading-relaxed">Ou pa gen ase kòb sou balans ou pou patisipe.</p>
               </div>
             )}
 
             <button
-              onClick={() => onJoin(contest.id)}
-              disabled={!canAfford}
-              className={`w-full py-6 rounded-[2rem] font-black uppercase text-xs tracking-widest transition-all shadow-xl flex flex-col items-center justify-center gap-1 ${canAfford
-                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_8px_0_rgb(29,78,216)] active:translate-y-2 active:shadow-none'
-                : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
+              onClick={() => isJoined ? (onGoToMyContests && onGoToMyContests()) : onJoin(contest.id)}
+              disabled={!isJoined && !canAfford}
+              className={`w-full py-6 rounded-[2rem] font-black uppercase text-xs tracking-widest transition-all shadow-xl flex flex-col items-center justify-center gap-1 ${isJoined
+                ? 'bg-slate-700 text-green-400 border-2 border-green-500/30 shadow-none'
+                : canAfford
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_8px_0_rgb(29,78,216)] active:translate-y-2 active:shadow-none'
+                  : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
                 }`}
             >
-              <span>KONFIME PATISIPASYON</span>
-              <span className="text-[8px] opacity-60 font-bold">Lajan an ap dedwi otomatikman</span>
+              <span>{isJoined ? 'OU DEJA ENSKRI ✅' : 'KONFIME PATISIPASYON'}</span>
+              <span className="text-[8px] opacity-60 font-bold">
+                {isJoined ? 'Ale nan paj konkou ou yo' : 'Kòb la ap dedwi otomatikman'}
+              </span>
             </button>
 
             <div className="mt-6 flex items-center justify-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Sistèm Peman QuizPam Sekirize</p>
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center px-4">Peman Sekirize ak Balans ou</p>
               <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
             </div>
           </div>

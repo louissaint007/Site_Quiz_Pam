@@ -11,6 +11,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [realName, setRealName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -23,9 +24,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ 
-          email: email.trim(), 
-          password 
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password
         });
         if (error) {
           if (error.message === "Invalid login credentials") {
@@ -38,15 +39,18 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
         }
         onAuthComplete();
       } else {
-        const { data, error: signUpError } = await supabase.auth.signUp({ 
-          email: email.trim(), 
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
           password,
           options: {
-            data: { username: username.trim() }
+            data: {
+              username: username.trim(),
+              real_name: realName.trim()
+            }
           }
         });
         if (signUpError) throw signUpError;
-        
+
         if (data.session) {
           onAuthComplete();
         } else {
@@ -88,16 +92,30 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
 
         <form onSubmit={handleAuth} className="space-y-4">
           {!isLogin && (
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Non Jwè</label>
-              <input
-                required
-                type="text"
-                className="w-full p-4 bg-slate-900 border border-slate-700 rounded-2xl outline-none focus:ring-2 ring-blue-500 text-white font-bold transition-all"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
+            <>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Vre Non w konplè</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Egz: Jean Jacques"
+                  className="w-full p-4 bg-slate-900 border border-slate-700 rounded-2xl outline-none focus:ring-2 ring-blue-500 text-white font-bold transition-all"
+                  value={realName}
+                  onChange={(e) => setRealName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Surnom / Pseudo</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Egz: TiMounFoukan_99"
+                  className="w-full p-4 bg-slate-900 border border-slate-700 rounded-2xl outline-none focus:ring-2 ring-blue-500 text-white font-bold transition-all"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+            </>
           )}
           <div className="space-y-1">
             <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Email</label>

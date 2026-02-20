@@ -55,6 +55,4 @@ export const supabase = isValidSupabaseConfig(supabaseUrl)
   ? createClient(supabaseUrl, supabaseAnonKey)
   : createMockSupabase();
 
-console.log("Supabase client initialized. URL valid:", isValidSupabaseConfig(supabaseUrl));
-
 export const isSupabaseConfigured = isValidSupabaseConfig(supabaseUrl);

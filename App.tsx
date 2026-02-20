@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { UserProfile, Question, Contest, Wallet, SoloSyncData } from './types';
+import { UserProfile, Question, Contest, Wallet, Transaction, SoloSyncData } from './types';
 import QuizCard from './components/QuizCard';
 import GameTimer from './components/GameTimer';
 import AdminQuestionManager from './components/AdminQuestionManager';
@@ -9,18 +9,23 @@ import AdminContestManager from './components/AdminContestManager';
 import Auth from './components/Auth';
 import ProfileView from './components/ProfileView';
 import ContestDetailView from './components/ContestDetailView';
+import JoinedContestsView from './components/JoinedContestsView';
+import LeaderboardView from './components/LeaderboardView';
 import FinalistArena from './components/FinalistArena';
 import Reviews from './components/Reviews';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { calculateQuestionXp, calculateLevel, getLevelTitle, getPrestigeStyle } from './utils/xp';
 
 const MONCASH_GATEWAY_URL = 'https://page-moncash-quiz-pam.vercel.app/';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
-  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena' | 'reviews'>('landing');
+  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena' | 'reviews' | 'my-contests'>('landing');
   const [adminTab, setAdminTab] = useState<'stats' | 'questions' | 'contests'>('stats');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [joinedContests, setJoinedContests] = useState<{ id: string, status: string }[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
   const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
@@ -38,6 +43,8 @@ const App: React.FC = () => {
   const [hasPendingSync, setHasPendingSync] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [gameAnswers, setGameAnswers] = useState<{ questionId: string, isCorrect: boolean, timeSpent: number }[]>([]);
+  const [fraudWarnings, setFraudWarnings] = useState(0);
+  const [selectedPrizeImage, setSelectedPrizeImage] = useState<string | null>(null);
 
   // Timer reference for ms tracking
   const questionStartTimeRef = useRef<number>(0);
@@ -49,42 +56,92 @@ const App: React.FC = () => {
 
   const fetchContests = useCallback(async () => {
     if (!isSupabaseConfigured) {
-      console.log("[FETCH] Supabase not configured, skipping contests");
       return;
     }
-    console.log("[FETCH] Fetching contests...");
     try {
-      const { data, error } = await supabase.from('contests').select('*').order('created_at', { ascending: false });
-      console.log("[FETCH] Contests results:", { dataCount: data?.length, error });
+      const { data: contestsData, error } = await supabase.from('contests').select('*').order('created_at', { ascending: false });
       if (error) throw error;
-      setContests(data || []);
+
+      const { data: participantsData } = await supabase.from('contest_participants').select('contest_id');
+      const countsMap: Record<string, number> = {};
+
+      if (participantsData) {
+        participantsData.forEach((p: any) => {
+          countsMap[p.contest_id] = (countsMap[p.contest_id] || 0) + 1;
+        });
+      }
+
+      const enrichedContests = (contestsData || []).map(c => ({
+        ...c,
+        current_participants: countsMap[c.id] || 0
+      }));
+
+      setContests(enrichedContests);
     } catch (err: any) {
-      console.error("[FETCH] Fetch contests failed:", err);
+      console.error("fetchContests error:", err);
     }
   }, []);
 
   const fetchUserAndWallet = async (userId: string, currentSession: any) => {
-    console.log("[FETCH] Fetching User and Wallet for:", userId);
     try {
-      const [profileRes, walletRes] = await Promise.all([
+      const [profileRes, walletRes, transRes, joinedRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-        supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle()
+        supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle(),
+        supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
+        supabase.from('contest_participants').select('contest_id, status').eq('user_id', userId)
       ]);
-      console.log("[FETCH] User/Wallet results recived");
 
       const userEmail = currentSession?.user?.email;
       let currentUser = profileRes.data;
-      if (!currentUser) {
-        const { data: created } = await supabase.from('profiles').upsert({
+
+      // Robust creation if missing
+      if (!currentUser && userId) {
+        console.log("[INIT] Profile missing, attempting creation for:", userId);
+        const { data: created, error: createError } = await supabase.from('profiles').upsert({
           id: userId,
           username: currentSession?.user?.user_metadata?.username || `Jwe_${userId.slice(0, 4)}`,
-          balance_htg: 0, solo_level: 1, honorary_title: 'Novice'
+          balance_htg: 0,
+          level: 1,
+          xp: 0,
+          honorary_title: 'Novice',
+          last_level_notified: 1
         }).select().single();
-        currentUser = created;
+
+        if (createError) {
+          console.error("[INIT] Profile creation error:", createError);
+          // Try a simple select one last time in case of race condition
+          const { data: retry } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+          currentUser = retry;
+        } else {
+          currentUser = created;
+        }
       }
-      setUser({ ...currentUser, email: userEmail } as UserProfile);
-      if (walletRes.data) setWallet(walletRes.data as Wallet);
-    } catch (err) { console.error(err); }
+
+      if (currentUser) {
+        setUser({ ...currentUser, email: userEmail } as UserProfile);
+      } else {
+        console.error("[INIT] Could not resolve user profile for:", userId);
+      }
+
+      // If wallet is missing, create it
+      if (!walletRes.data && userId) {
+        const { data: newWallet } = await supabase.from('wallets').upsert({
+          user_id: userId,
+          total_balance: 0,
+          total_deposited: 0,
+          total_withdrawn: 0,
+          total_won: 0
+        }).select().single();
+        if (newWallet) setWallet(newWallet as Wallet);
+      } else {
+        setWallet(walletRes.data as Wallet);
+      }
+
+      if (transRes.data) setTransactions(transRes.data as Transaction[]);
+      if (joinedRes.data) setJoinedContests(joinedRes.data.map((p: any) => ({ id: p.contest_id, status: p.status })));
+    } catch (err) {
+      console.error("[INIT] Error fetching user data:", err);
+    }
   };
 
   const uploadResults = async (data: SoloSyncData) => {
@@ -97,7 +154,60 @@ const App: React.FC = () => {
         total_time_ms: data.total_time_ms
       }).eq('id', data.sessionId);
 
-      // 2. Insert detailed progress
+      // 2. Update User XP and Level
+      // Fetch seen questions to detect farming BEFORE inserting new ones
+      const { data: seenQuestions } = await supabase
+        .from('user_solo_progress')
+        .select('question_id')
+        .eq('user_id', data.userId)
+        .eq('is_correct', true)
+        .in('question_id', data.answers.map(a => a.questionId));
+
+      const seenIds = new Set(seenQuestions?.map(q => q.question_id) || []);
+
+      let totalXpGained = 0;
+      data.answers.forEach(ans => {
+        if (ans.isCorrect) {
+          const isRepeated = seenIds.has(ans.questionId);
+          // Time left: Each question has 10s. timeLeft = 10 - (timeSpent/1000)
+          const timeLeft = Math.max(0, 10 - (ans.timeSpent / 1000));
+          totalXpGained += calculateQuestionXp(true, timeLeft, isRepeated);
+        }
+      });
+
+      if (totalXpGained > 0 && user) {
+        const newTotalXp = Number(user.xp || 0) + totalXpGained;
+        const newLevel = calculateLevel(newTotalXp);
+
+        let newTitle = user.honorary_title;
+        if (newLevel !== user.level) {
+          const { data: config } = await supabase
+            .from('levels_config')
+            .select('title')
+            .lte('level', newLevel)
+            .order('level', { ascending: false })
+            .limit(1)
+            .single();
+          if (config) newTitle = config.title;
+        }
+
+        const { data: updatedProfile } = await supabase
+          .from('profiles')
+          .update({
+            xp: newTotalXp,
+            level: newLevel,
+            honorary_title: newTitle
+          })
+          .eq('id', data.userId)
+          .select()
+          .single();
+
+        if (updatedProfile) {
+          setUser({ ...updatedProfile, email: user.email } as UserProfile);
+        }
+      }
+
+      // 3. Insert detailed progress
       const progressData = data.answers.map(ans => ({
         user_id: data.userId,
         question_id: ans.questionId,
@@ -105,8 +215,7 @@ const App: React.FC = () => {
       }));
       await supabase.from('user_solo_progress').insert(progressData);
 
-      // 3. Logic: Check for perfect ties and mark as finalist if applicable
-      // This is a simplified client-side check. In production, a Supabase Function would be better.
+      // 4. Logic: Check for perfect ties and mark as finalist if applicable
       const { data: competitors } = await supabase
         .from('game_sessions')
         .select('id, score, total_time_ms')
@@ -122,6 +231,18 @@ const App: React.FC = () => {
         }
       }
 
+      // 5. Update Contest Participant status if this was a contest
+      if (selectedContest?.id) {
+        await supabase.from('contest_participants').update({
+          status: 'completed',
+          score: data.score,
+          completed_at: new Date().toISOString()
+        }).eq('contest_id', selectedContest.id).eq('user_id', data.userId);
+
+        // Update local state without fetching
+        setJoinedContests(prev => prev.map(jc => jc.id === selectedContest.id ? { ...jc, status: 'completed' } : jc));
+      }
+
       localStorage.removeItem('quizpam_sync_queue');
       setHasPendingSync(false);
       return true;
@@ -134,23 +255,75 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAvatarUpload = async (file: File) => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setUser(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
+      return publicUrl;
+    } catch (err: any) {
+      setError("Erè pandan n ap chanje foto a: " + err.message);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const syncPending = async () => {
     const pending = localStorage.getItem('quizpam_sync_queue');
     if (!pending) return;
-    console.log("[SYNC] Awaiting uploadResults for pending sync...");
     await uploadResults(JSON.parse(pending));
-    console.log("[SYNC] uploadResults for pending sync finished.");
   };
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (gameState === 'playing' && document.hidden) {
+        setFraudWarnings(prev => {
+          const next = prev + 1;
+          if (next >= 2) {
+            setError("Ou soti nan paj la twòp fwa. Konkou a anile pou fwòd.");
+            setGameState('ready');
+            setView('home');
+          } else {
+            alert("AVÈTISMAN: Pa kite paj la pandan konkou a ap dewoule. Si ou refè sa, w ap diskalifye.");
+          }
+          return next;
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [gameState]);
 
   useEffect(() => {
     let isMounted = true;
 
     const initAuth = async () => {
-      console.log("[INIT] Step 1: getSession starting...");
 
       try {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        console.log("[INIT] getSession result:", !!currentSession);
 
         if (error) console.warn("[INIT] Get session error:", error);
 
@@ -202,6 +375,7 @@ const App: React.FC = () => {
       } else {
         setUser(null);
         setWallet(null);
+        setTransactions([]);
       }
 
       // Always ensure loading is false on major auth events
@@ -222,12 +396,14 @@ const App: React.FC = () => {
     await supabase.auth.signOut();
     setUser(null);
     setWallet(null);
+    setTransactions([]);
     setView('home');
     setGameState('ready');
     setIsMobileMenuOpen(false);
   };
 
-  const startGame = async (mode: 'solo' | 'contest' | 'finalist') => {
+  const startGame = async (mode: 'solo' | 'contest' | 'finalist', overrideContest?: Contest) => {
+    const currentContest = overrideContest || selectedContest;
     if (!session || !user) { setView('auth'); return; }
     setIsLoading(true);
     setError(null);
@@ -242,6 +418,18 @@ const App: React.FC = () => {
           .eq('difficulty', 4) // Expert
           .limit(10);
         selectedIds = (expertPool || []).map(q => q.id).sort(() => Math.random() - 0.5);
+      } else if (mode === 'contest') {
+        const poolIds = currentContest?.questions_ids || [];
+        const drawCount = currentContest?.question_count || 10;
+
+        if (poolIds.length < (drawCount || 5)) {
+          throw new Error("Pa gen ase kòb kesyon pou konkou sa a ankò.");
+        }
+
+        // Randomly draw X questions from the pool
+        selectedIds = [...poolIds]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, drawCount);
       } else if (mode === 'solo') {
         const { data: seenData } = await supabase.from('user_solo_progress').select('question_id').eq('user_id', user.id);
         const seenIds = seenData?.map(d => d.question_id) || [];
@@ -254,7 +442,7 @@ const App: React.FC = () => {
 
       const { data: gameSession, error: sessErr } = await supabase.from('game_sessions').insert({
         user_id: user.id,
-        contest_id: mode === 'contest' || mode === 'finalist' ? selectedContest?.id : null,
+        contest_id: mode === 'contest' || mode === 'finalist' ? currentContest?.id : null,
         questions_ids: selectedIds,
         is_completed: false
       }).select().single();
@@ -290,7 +478,12 @@ const App: React.FC = () => {
     setSelectedAnswer(idx);
     if (!isTimeout) setIsShowingCorrect(true);
 
+    // Game points (for contests/leaderboard) - Keep current formula or update if needed
+    // The user specifically asked for XP changes.
     const points = isCorrect ? (100 + Math.floor(timeLeft * 10)) : 0;
+
+    // Total level XP gain (Calculated during uploadResults to account for repeat questions)
+
     const newScore = score + points;
     const newTotalTime = totalTimeMs + timeSpent;
 
@@ -308,6 +501,15 @@ const App: React.FC = () => {
         setCurrentIndex(prev => prev + 1);
         questionStartTimeRef.current = Date.now();
       } else {
+        // Validation: Detect impossible scores (e.g., < 1s per question on average)
+        const minLegalTime = questions.length * 800; // 0.8s minimum per question
+        if (newTotalTime < minLegalTime) {
+          setError("Pèfòmans sa a sispèk. Rezilta a pa sove pou sekirite.");
+          setGameState('ready');
+          setView('home');
+          return;
+        }
+
         setGameState('result');
         const finalData: SoloSyncData = {
           sessionId: activeSessionId!,
@@ -321,24 +523,115 @@ const App: React.FC = () => {
     }, isTimeout ? 800 : 1200);
   };
 
-  const redirectToMonCash = (amount: number, type: 'deposit' | 'contest_entry', contestId?: string) => {
+  const handleJoinContest = async (contest: Contest) => {
+    if (!user || !wallet) { setView('auth'); return; }
+
+    // Check if already joined
+    if (joinedContests.some(jc => jc.id === contest.id)) {
+      setError("Ou deja enskri nan konkou sa a!");
+      setView('my-contests');
+      return;
+    }
+
+    // Check if contest has ended
+    if (contest.ends_at && new Date(contest.ends_at) < new Date()) {
+      setError("Konkou sa a fini deja!");
+      return;
+    }
+
+    const entryFee = contest.entry_fee || contest.entry_fee_htg || 0;
+
+    // 1. Check if user has enough money (use profile balance as single source of truth)
+    if ((user.balance_htg || 0) >= entryFee) {
+      setIsLoading(true);
+      try {
+        // Create a completed transaction for the entry fee
+        const { error: txError } = await supabase.from('transactions').insert({
+          user_id: user.id,
+          amount: entryFee,
+          type: 'entry_fee',
+          status: 'completed',
+          description: `Peyiman Konkou: ${contest.title}`,
+          reference_id: contest.id,
+          payment_method: 'WALLET'
+        });
+
+        if (txError) throw txError;
+
+        // 2. Register participation
+        const { error: partError } = await supabase.from('contest_participants').insert({
+          contest_id: contest.id,
+          user_id: user.id,
+          status: 'joined'
+        });
+
+        if (partError) throw partError;
+
+        // 3. Increment current_participants count
+        const { error: updateError } = await supabase
+          .from('contests')
+          .update({ current_participants: (contest.current_participants || 0) + 1 })
+          .eq('id', contest.id);
+
+        if (updateError) console.error("Error updating participant count:", updateError);
+
+        await fetchUserAndWallet(user.id, session);
+        await fetchContests(); // Refresh contests to show new count
+        setError(null);
+        setView('my-contests');
+      } catch (err: any) {
+        setError("Erè pandan n ap dedui kòb la: " + err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setError(`Ou pa gen ase kòb sou balans ou (${user.balance_htg || 0} HTG). Konkou sa a koute ${entryFee} HTG. Tanpri fè yon depo.`);
+      setView('profile');
+    }
+  };
+
+  const redirectToMonCash = async (amount: number, type: 'deposit' | 'entry_fee', contestId?: string) => {
     if (!user) { setView('auth'); return; }
 
-    // Generate a unique UUID for the transactions table id
-    const orderId = crypto.randomUUID();
+    // Generate a combined ID: userId__uuid
+    // This ensures we can ALWAYS recover the user_id from the reference
+    const orderId = `${user.id}__${crypto.randomUUID()}`;
+
+    try {
+      // Create a pending transaction record first
+      await supabase.from('transactions').insert({
+        id: orderId,
+        user_id: user.id,
+        amount: amount,
+        type: type,
+        status: 'pending',
+        description: type === 'deposit' ? 'Depo Balans' : `Antre Konkou`,
+        reference_id: contestId || null,
+        payment_method: 'MONCASH',
+        metadata: {
+          user_id: user.id,
+          initiated_at: new Date().toISOString()
+        }
+      });
+
+      // Refresh transactions list to show the pending one
+      fetchUserAndWallet(user.id, session);
+    } catch (err) {
+      console.error("Error creating pending transaction:", err);
+    }
 
     const params = new URLSearchParams({
       userId: user.id,
       username: user.username,
       amount: amount.toString(),
-      orderId: orderId, // Pass the generated orderId
+      orderId: orderId,
       type: type,
       description: type === 'deposit' ? 'Depo Balans QuizPam' : `Antre Konkou`,
     });
     if (contestId) params.append('contestId', contestId);
 
     const url = `${MONCASH_GATEWAY_URL}?${params.toString()}`;
-    window.open(url, '_blank'); // Open in new tab
+    window.open(url, '_blank');
   };
 
   if (isLoading) return (
@@ -366,19 +659,22 @@ const App: React.FC = () => {
             )}
 
             {session && user && (
-              <button onClick={() => setView('profile')} className="flex items-center space-x-2 md:space-x-3 group bg-slate-900/40 p-1 pr-3 md:p-1 md:pr-4 rounded-2xl border border-white/5 hover:border-blue-500/50 transition-all">
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl overflow-hidden border border-slate-700">
-                  <img src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="Profile" className="w-full h-full object-cover" />
+              <button onClick={() => setView('profile')} className="flex items-center space-x-2 md:space-x-3 group bg-slate-900/40 p-1 pr-3 md:p-1 md:pr-4 rounded-2xl border border-white/5 hover:border-blue-500/50 transition-all relative overflow-hidden">
+                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl overflow-hidden avatar-frame ${getPrestigeStyle(user.level || 1).frameClass}`}>
+                  <img src={user.avatars_url || user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="Profile" className="w-full h-full object-cover rounded-lg" />
                 </div>
                 <div className="text-right">
-                  <p className="hidden xs:block text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Balans</p>
-                  <p className="text-yellow-400 font-black text-xs md:text-sm">{(wallet?.total_balance || 0).toLocaleString()} <span className="text-[10px]">HTG</span></p>
+                  <p className={`hidden xs:block text-[8px] md:text-[10px] font-black uppercase tracking-widest leading-none ${getPrestigeStyle(user.level || 1).textClass}`}>
+                    {user.username} {getPrestigeStyle(user.level || 1).icon}
+                  </p>
+                  <p className="text-yellow-400 font-black text-xs md:text-sm">{(user?.balance_htg || 0).toLocaleString()} <span className="text-[10px]">HTG</span></p>
                 </div>
               </button>
             )}
 
             {session && user && (
               <div className="hidden md:flex items-center space-x-4">
+                <button onClick={() => setView('my-contests')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Konkou Mwen</button>
                 <button onClick={() => setView('reviews')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Avis</button>
                 {user.is_admin && (
                   <button onClick={() => setView('admin')} className="text-[10px] font-black uppercase tracking-widest bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl transition-colors">Admin</button>
@@ -389,8 +685,16 @@ const App: React.FC = () => {
               </div>
             )}
 
+            {session && !user && (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></div>
+                <button onClick={handleLogout} className="text-[10px] font-black uppercase text-red-500 hover:text-red-400">Dekonekte</button>
+              </div>
+            )}
+
             {!session && (
               <div className="hidden md:flex items-center space-x-4">
+                <button onClick={() => setView('my-contests')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Konkou Mwen</button>
                 <button onClick={() => setView('reviews')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Avis</button>
                 <button onClick={() => setView('auth')} className="text-[10px] font-black uppercase tracking-widest bg-blue-600 px-6 py-2.5 rounded-xl shadow-lg hover:bg-blue-500 transition-all">Koneksyon</button>
               </div>
@@ -413,6 +717,7 @@ const App: React.FC = () => {
           <div className="space-y-4 flex-1 overflow-y-auto">
             <button onClick={() => { setView('landing'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Landing <span>🌐</span></button>
             <button onClick={() => { setView('home'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Lobby <span>🏠</span></button>
+            <button onClick={() => { setView('my-contests'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Konkou Mwen <span>🏆</span></button>
             <button onClick={() => { setView('reviews'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Avis Kliyan <span>💬</span></button>
             {user && (
               <>
@@ -500,10 +805,54 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {view === 'my-contests' && (
+          <JoinedContestsView
+            contests={contests}
+            joinedContests={joinedContests}
+            onBack={() => setView('home')}
+            onEnterContest={(c) => {
+              setSelectedContest(c);
+              startGame('contest', c);
+            }}
+            onViewRankings={(c) => {
+              setSelectedContest(c);
+              setView('leaderboard');
+            }}
+          />
+        )}
         {view === 'auth' && <Auth onAuthComplete={() => setView('home')} />}
-        {view === 'profile' && user && <ProfileView user={user} wallet={wallet} onBack={() => setView('home')} onDeposit={(amount) => redirectToMonCash(amount, 'deposit')} />}
+        {view === 'profile' && user && (
+          <ProfileView
+            user={user}
+            wallet={wallet}
+            transactions={transactions}
+            onBack={async () => {
+              if (user.level > (user.last_level_notified || 1)) {
+                await supabase.from('profiles').update({ last_level_notified: user.level }).eq('id', user.id);
+                setUser(prev => prev ? { ...prev, last_level_notified: user.level } : null);
+              }
+              setView('home');
+            }}
+            onDeposit={(amount) => redirectToMonCash(amount, 'deposit')}
+          />
+        )}
         {view === 'contest-detail' && selectedContest && (
-          <ContestDetailView contest={selectedContest} userBalance={wallet?.total_balance || 0} onBack={() => setView('home')} onJoin={() => redirectToMonCash(selectedContest.entry_fee || selectedContest.entry_fee_htg || 0, 'contest_entry', selectedContest.id)} />
+          <ContestDetailView
+            contest={selectedContest}
+            userBalance={user?.balance_htg || 0}
+            isJoined={joinedContests.some(jc => jc.id === selectedContest.id)}
+            onBack={() => setView('home')}
+            onJoin={() => handleJoinContest(selectedContest)}
+            onGoToMyContests={() => setView('my-contests')}
+            onPrizeClick={(url) => setSelectedPrizeImage(url)}
+          />
+        )}
+        {view === 'leaderboard' && selectedContest && (
+          <LeaderboardView
+            contest={selectedContest}
+            currentUserId={user?.id || ''}
+            onBack={() => setView('my-contests')}
+          />
         )}
         {view === 'finalist-arena' && selectedContest && (
           <FinalistArena contestTitle={selectedContest.title} onStartFinal={() => startGame('finalist')} />
@@ -529,20 +878,50 @@ const App: React.FC = () => {
                 <button className="mt-8 w-full py-4 bg-slate-700 group-hover:bg-blue-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest transition-all">KÒMANSE SOLO</button>
               </div>
 
-              {contests.map(c => (
-                <div key={c.id} className="bg-slate-800 rounded-[2.5rem] border border-white/5 overflow-hidden flex flex-col group hover:scale-[1.02] transition-all shadow-2xl">
-                  <div className="h-48 bg-slate-700 bg-cover bg-center flex items-end p-6" style={c.image_url ? { backgroundImage: `linear-gradient(to bottom, transparent, rgba(15, 23, 42, 0.98)), url(${c.image_url})` } : {}}>
-                    <h4 className="text-xl font-black text-white truncate">{c.title}</h4>
-                  </div>
-                  <div className="p-6 space-y-4">
-                    <div className="flex justify-between">
-                      <span className="text-yellow-400 font-black">{(c.entry_fee || c.entry_fee_htg || 0)} HTG</span>
-                      <span className="text-green-400 font-black">Pool: {c.grand_prize} HTG</span>
+              {contests.map(c => {
+                const targetParticipants = (c.max_participants && c.max_participants > 0) ? c.max_participants : (c.min_participants || 1);
+                const progress = Math.min(100, ((c.current_participants || 0) / targetParticipants) * 100);
+                const isObjectPrize = c.prize_type === 'object';
+
+                return (
+                  <div key={c.id} className="bg-slate-800 rounded-[2.5rem] border border-white/5 overflow-hidden flex flex-col group hover:scale-[1.02] transition-all shadow-2xl relative">
+                    {/* Header Media */}
+                    <div className="h-48 bg-slate-700 relative overflow-hidden flex items-end p-6">
+                      {c.media_type === 'video' || (c.image_url?.endsWith('.mp4')) ? (
+                        <video src={c.image_url} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `linear-gradient(to bottom, transparent, rgba(15, 23, 42, 0.98)), url(${c.image_url})` }} />
+                      )}
+                      <h4 className="relative z-10 text-xl font-black text-white truncate drop-shadow-lg">{c.title}</h4>
                     </div>
-                    <button onClick={() => { setSelectedContest(c); setView('contest-detail'); }} className="w-full py-4 bg-blue-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest hover:bg-blue-500 transition-colors">Patisipe</button>
+
+                    {/* Progress Bar */}
+                    <div className="px-6 py-3 bg-slate-900/40 border-b border-white/5">
+                      <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-yellow-700 via-yellow-400 to-yellow-700 shadow-[0_0_12px_rgba(250,204,21,0.6)] animate-pulse"
+                          style={{ width: `${Math.max(2, progress)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-yellow-400 font-black">{(c.entry_fee || 0)} HTG</span>
+                        <div className="flex items-center gap-2 bg-slate-900/60 p-2 pl-3 rounded-2xl border border-white/5">
+                          <span className="text-green-400 font-black text-[10px]">
+                            {isObjectPrize ? c.prize_description : `${c.grand_prize} HTG`}
+                          </span>
+                          {isObjectPrize && c.prize_image_url && (
+                            <img src={c.prize_image_url} onClick={(e) => { e.stopPropagation(); setSelectedPrizeImage(c.prize_image_url!); }} className="w-8 h-8 rounded-lg object-cover cursor-zoom-in" />
+                          )}
+                        </div>
+                      </div>
+                      <button onClick={() => { setSelectedContest(c); setView('contest-detail'); }} className="w-full py-4 bg-blue-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest hover:bg-blue-500 transition-colors">Patisipe</button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -600,6 +979,34 @@ const App: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Lightbox Modal */}
+      {selectedPrizeImage && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300"
+          onClick={() => setSelectedPrizeImage(null)}
+        >
+          <button
+            className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all z-[110]"
+            onClick={() => setSelectedPrizeImage(null)}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div
+            className="max-w-5xl max-h-[90vh] w-full relative animate-in zoom-in duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={selectedPrizeImage}
+              alt="Grand Prize Full View"
+              className="w-full h-full object-contain rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+            />
+          </div>
+        </div>
+      )}
 
       <footer className="mt-auto py-10 text-center border-t border-white/5 opacity-40">
         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-500">© 2025 QuizPam - Tout dwa rezève</p>

@@ -22,6 +22,80 @@
     body {
       font-family: 'Inter', sans-serif;
     }
+
+    /* Prestige Styles */
+    .prestige-bronze {
+      color: #CD7F32;
+      text-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+    }
+
+    .prestige-silver {
+      color: #C0C0C0;
+      background: linear-gradient(to right, #C0C0C0 0%, #E0E0E0 50%, #C0C0C0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.3));
+    }
+
+    .prestige-gold {
+      color: #FFD700;
+      text-shadow: 0 0 2px rgba(255, 215, 0, 0.4);
+    }
+
+    .prestige-diamond {
+      background: linear-gradient(45deg,
+          #b9f2ff, #ffffff, #ef86ff, #b9f2ff, #ffffff);
+      background-size: 400% 400%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: holo-shimmer 5s ease infinite;
+      font-weight: 900;
+    }
+
+    @keyframes holo-shimmer {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    .avatar-frame {
+      border-radius: 9999px;
+      padding: 2px;
+    }
+
+    .frame-bronze {
+      background: #CD7F32;
+      padding: 3px;
+      box-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
+    }
+
+    .frame-silver {
+      background: linear-gradient(45deg, #C0C0C0, #FFFFFF, #C0C0C0);
+      padding: 4px;
+      box-shadow: 0 0 12px rgba(192, 192, 192, 0.4);
+    }
+
+    .frame-gold {
+      background: linear-gradient(45deg, #FFD700, #FFFACD, #FFD700);
+      padding: 5px;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+
+    .frame-diamond {
+      background: linear-gradient(45deg, #b9f2ff, #ffffff, #ef86ff, #b9f2ff);
+      background-size: 300% 300%;
+      animation: holo-shimmer 3s ease infinite;
+      padding: 6px;
+      box-shadow: 0 0 20px rgba(185, 242, 255, 0.6);
+    }
   </style>
 
 </head>
