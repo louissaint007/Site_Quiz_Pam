@@ -10,9 +10,10 @@ interface ProfileViewProps {
   transactions: Transaction[];
   onBack: () => void;
   onDeposit: (amount: number) => void;
+  onWithdraw: (amount: number, phone: string) => void;
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ user, wallet, transactions, onBack, onDeposit }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ user, wallet, transactions, onBack, onDeposit, onWithdraw }) => {
   const [showCelebration, setShowCelebration] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const [isEditingUsername, setIsEditingUsername] = React.useState(false);
@@ -319,6 +320,54 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, wallet, transactions, o
                   Depoze kòb
                 </button>
               </div>
+
+              {/* Temporarily hidden until Digicel Payout is activated */}
+              {false && (
+                <>
+                  <div className="h-px bg-white/5 w-full my-4"></div>
+
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1 bg-slate-900/60 p-4 rounded-3xl border border-white/5 flex flex-col justify-center gap-2">
+                      <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest px-2">Kòb pou Retire</label>
+                      <div className="flex flex-col lg:flex-row gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="number"
+                            placeholder="Montant"
+                            id="withdrawAmount"
+                            className="w-full bg-slate-800/80 rounded-2xl border-none p-3 text-white font-black text-lg outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-black text-xs">HTG</span>
+                        </div>
+                        <div className="relative flex-[1.5]">
+                          <input
+                            type="tel"
+                            placeholder="Nimewo MonCash (ex: 509...)"
+                            id="withdrawPhone"
+                            className="w-full bg-slate-800/80 rounded-2xl border-none p-3 text-white font-black text-lg outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const amount = (document.getElementById('withdrawAmount') as HTMLInputElement)?.value;
+                        const phone = (document.getElementById('withdrawPhone') as HTMLInputElement)?.value;
+                        if (!amount || !phone) {
+                          alert("Tanpri antre yon kantite kòb ak yon nimewo telefòn MonCash.");
+                          return;
+                        }
+                        onWithdraw(Number(amount), phone);
+                      }}
+                      className="px-8 py-5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white font-black rounded-3xl shadow-lg active:translate-y-2 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-3 shrink-0"
+                    >
+                      <span className="text-xl">📤</span>
+                      Retire kòb
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

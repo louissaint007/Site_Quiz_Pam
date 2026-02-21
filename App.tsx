@@ -634,6 +634,26 @@ const App: React.FC = () => {
     window.open(url, '_blank');
   };
 
+  const handleMonCashWithdrawal = async (amount: number, phone: string) => {
+    if (!user) { setView('auth'); return; }
+
+    if ((user.balance_htg || 0) < amount) {
+      setError(`Ou pa gen ase kòb. Solde w se ${user.balance_htg} HTG.`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const params = new URLSearchParams({
+      action: 'withdraw',
+      userId: user.id,
+      amount: amount.toString(),
+      phone: phone
+    });
+
+    const url = `${MONCASH_GATEWAY_URL}?${params.toString()}`;
+    window.open(url, '_blank');
+  };
+
   if (isLoading) return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
       <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -834,6 +854,7 @@ const App: React.FC = () => {
               setView('home');
             }}
             onDeposit={(amount) => redirectToMonCash(amount, 'deposit')}
+            onWithdraw={handleMonCashWithdrawal}
           />
         )}
         {view === 'contest-detail' && selectedContest && (

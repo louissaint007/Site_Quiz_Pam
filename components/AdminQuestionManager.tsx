@@ -6,7 +6,7 @@ const AdminQuestionManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'manual' | 'import'>('manual');
   const [isUploading, setIsUploading] = useState(false);
   const [copied, setCopied] = useState(false);
-  
+
   const [manualQuestion, setManualQuestion] = useState({
     question_text: '',
     options: ['', '', '', ''],
@@ -38,7 +38,7 @@ const AdminQuestionManager: React.FC = () => {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUploading(true);
-    
+
     try {
       const dataToInsert = {
         question_text: manualQuestion.question_text,
@@ -52,9 +52,9 @@ const AdminQuestionManager: React.FC = () => {
       };
 
       const { error } = await supabase.from('questions').insert([dataToInsert]);
-      
+
       if (error) throw error;
-      
+
       alert("Question ajoutée avec succès sur Supabase !");
       setManualQuestion({
         question_text: '',
@@ -82,9 +82,9 @@ const AdminQuestionManager: React.FC = () => {
       try {
         const jsonContent = event.target?.result as string;
         const json = JSON.parse(jsonContent);
-        
+
         if (!Array.isArray(json)) throw new Error("Le JSON doit être une liste d'objets.");
-        
+
         const formattedData = json.map(q => {
           const diffValue = typeof q.difficulty === 'number' ? q.difficulty : (parseInt(q.difficulty_level) || 1);
           return {
@@ -101,31 +101,31 @@ const AdminQuestionManager: React.FC = () => {
 
         const { error } = await supabase.from('questions').insert(formattedData);
         if (error) throw error;
-        
+
         alert(`${formattedData.length} questions importées avec succès sur Supabase !`);
       } catch (err: any) {
         console.error("Import Error Details:", err);
         alert(`Erreur lors de l'importation : ${err.message}`);
       } finally {
         setIsUploading(false);
-        e.target.value = ''; 
+        e.target.value = '';
       }
     };
     reader.readAsText(file);
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="flex border-b border-slate-100">
-        <button 
+    <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-slate-800 shadow-xl overflow-hidden mt-8">
+      <div className="flex border-b border-slate-800 mb-6">
+        <button
           onClick={() => setActiveTab('manual')}
-          className={`flex-1 py-4 font-bold text-sm transition-colors ${activeTab === 'manual' ? 'text-blue-600 bg-blue-50/50 border-b-2 border-blue-600' : 'text-slate-400'}`}
+          className={`flex-1 py-4 font-black uppercase tracking-widest text-xs transition-colors ${activeTab === 'manual' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-500 hover:text-slate-400'}`}
         >
           Saisie Manuelle
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('import')}
-          className={`flex-1 py-4 font-bold text-sm transition-colors ${activeTab === 'import' ? 'text-blue-600 bg-blue-50/50 border-b-2 border-blue-600' : 'text-slate-400'}`}
+          className={`flex-1 py-4 font-black uppercase tracking-widest text-xs transition-colors ${activeTab === 'import' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-500 hover:text-slate-400'}`}
         >
           Importation JSON
         </button>
@@ -135,31 +135,31 @@ const AdminQuestionManager: React.FC = () => {
         {activeTab === 'manual' ? (
           <form onSubmit={handleManualSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase">Question</label>
-              <textarea 
+              <label className="text-[10px] font-black text-slate-500 uppercase ml-2">Question</label>
+              <textarea
                 required
                 disabled={isUploading}
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 ring-blue-500 outline-none disabled:opacity-50"
+                className="w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl text-white font-bold focus:ring-2 ring-blue-500 outline-none disabled:opacity-50 resize-none"
                 placeholder="Ex: Qui a découvert la gravité ?"
                 value={manualQuestion.question_text}
-                onChange={e => setManualQuestion({...manualQuestion, question_text: e.target.value})}
+                onChange={e => setManualQuestion({ ...manualQuestion, question_text: e.target.value })}
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {manualQuestion.options.map((opt, i) => (
                 <div key={i} className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Option {String.fromCharCode(65 + i)}</label>
-                  <input 
+                  <label className="text-[10px] font-black text-slate-500 uppercase ml-2">Option {String.fromCharCode(65 + i)}</label>
+                  <input
                     required
                     disabled={isUploading}
                     type="text"
-                    className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 ring-blue-500 disabled:opacity-50"
+                    className="w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl text-white font-bold outline-none focus:ring-2 ring-blue-500 disabled:opacity-50"
                     value={opt}
                     onChange={e => {
                       const newOpts = [...manualQuestion.options];
                       newOpts[i] = e.target.value;
-                      setManualQuestion({...manualQuestion, options: newOpts});
+                      setManualQuestion({ ...manualQuestion, options: newOpts });
                     }}
                   />
                 </div>
@@ -168,11 +168,11 @@ const AdminQuestionManager: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase">Bonne Réponse</label>
-                <select 
-                  className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl outline-none"
+                <label className="text-[10px] font-black text-slate-500 uppercase ml-2">Bonne Réponse</label>
+                <select
+                  className="w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl text-white font-bold outline-none"
                   value={manualQuestion.correct_index}
-                  onChange={e => setManualQuestion({...manualQuestion, correct_index: parseInt(e.target.value)})}
+                  onChange={e => setManualQuestion({ ...manualQuestion, correct_index: parseInt(e.target.value) })}
                   disabled={isUploading}
                 >
                   <option value={0}>Option A</option>
@@ -182,11 +182,11 @@ const AdminQuestionManager: React.FC = () => {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase">Difficulté</label>
-                <select 
-                  className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl outline-none"
+                <label className="text-[10px] font-black text-slate-500 uppercase ml-2">Difficulté</label>
+                <select
+                  className="w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl text-white font-bold outline-none"
                   value={manualQuestion.difficulty}
-                  onChange={e => setManualQuestion({...manualQuestion, difficulty: parseInt(e.target.value)})}
+                  onChange={e => setManualQuestion({ ...manualQuestion, difficulty: parseInt(e.target.value) })}
                   disabled={isUploading}
                 >
                   <option value={1}>Niveau 1 (Facile)</option>
@@ -198,41 +198,41 @@ const AdminQuestionManager: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase">Catégorie</label>
-              <input 
+              <label className="text-[10px] font-black text-slate-500 uppercase ml-2">Catégorie</label>
+              <input
                 required
                 disabled={isUploading}
                 type="text"
                 placeholder="Histoire, Science, Sport..."
-                className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 ring-blue-500 disabled:opacity-50"
+                className="w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl text-white font-bold outline-none focus:ring-2 ring-blue-500 disabled:opacity-50"
                 value={manualQuestion.category}
-                onChange={e => setManualQuestion({...manualQuestion, category: e.target.value})}
+                onChange={e => setManualQuestion({ ...manualQuestion, category: e.target.value })}
               />
             </div>
 
-            <div className="flex space-x-4 pt-4 border-t border-slate-50">
+            <div className="flex space-x-4 pt-4 border-t border-slate-800">
               <label className="flex items-center space-x-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={manualQuestion.is_for_contest}
-                  onChange={e => setManualQuestion({...manualQuestion, is_for_contest: e.target.checked})}
-                  className="w-5 h-5 rounded text-blue-600"
+                  onChange={e => setManualQuestion({ ...manualQuestion, is_for_contest: e.target.checked })}
+                  className="w-5 h-5 rounded text-blue-600 focus:ring-blue-600 bg-slate-800 border-slate-700"
                 />
-                <span className="text-sm font-semibold text-slate-600">Utiliser en Concours</span>
+                <span className="text-sm font-bold text-slate-300">Utiliser en Concours</span>
               </label>
               <label className="flex items-center space-x-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={manualQuestion.is_for_solo}
-                  onChange={e => setManualQuestion({...manualQuestion, is_for_solo: e.target.checked})}
-                  className="w-5 h-5 rounded text-blue-600"
+                  onChange={e => setManualQuestion({ ...manualQuestion, is_for_solo: e.target.checked })}
+                  className="w-5 h-5 rounded text-blue-600 focus:ring-blue-600 bg-slate-800 border-slate-700"
                 />
-                <span className="text-sm font-semibold text-slate-600">Utiliser en Solo</span>
+                <span className="text-sm font-bold text-slate-300">Utiliser en Solo</span>
               </label>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isUploading}
               className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-50 flex justify-center items-center"
             >
@@ -249,33 +249,32 @@ const AdminQuestionManager: React.FC = () => {
           </form>
         ) : (
           <div className="text-center py-12 space-y-6">
-            <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-20 h-20 bg-blue-500/10 text-blue-500 rounded-[2rem] flex items-center justify-center mx-auto border border-blue-500/20">
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
             </div>
             <div className="max-w-xs mx-auto space-y-2">
-              <h3 className="text-lg font-bold text-slate-800">Importation Massive</h3>
-              <p className="text-sm text-slate-500">Sélectionnez un fichier JSON contenant une liste de questions au format correct.</p>
+              <h3 className="text-lg font-black text-white uppercase tracking-wider">Importation Massive</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">Moute yon fichiye JSON ki gen lis kesyon nan bon fòma a.</p>
             </div>
-            
-            <label className="inline-block px-8 py-3 bg-slate-900 text-white font-bold rounded-2xl cursor-pointer hover:bg-black transition-colors">
+
+            <label className="inline-flex px-8 py-4 bg-slate-800 text-white font-black rounded-2xl cursor-pointer hover:bg-slate-700 transition-colors uppercase tracking-widest text-xs border border-slate-700 shadow-xl">
               {isUploading ? 'Traitement en cours...' : 'CHOISIR UN FICHIER'}
-              <input 
-                type="file" 
-                accept=".json" 
-                className="hidden" 
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
                 onChange={handleFileUpload}
                 disabled={isUploading}
               />
             </label>
-            
-            <div className="text-left bg-slate-50 p-6 rounded-2xl border border-slate-100 max-w-md mx-auto relative group">
+
+            <div className="text-left bg-slate-900/50 p-6 rounded-3xl border border-slate-800 max-w-md mx-auto relative group">
               <div className="flex justify-between items-center mb-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fòma JSON atandi :</p>
-                <button 
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fòma JSON atandi :</p>
+                <button
                   onClick={handleCopy}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${
-                    copied ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/10'
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${copied ? 'bg-green-500/20 text-green-500 border border-green-500/50' : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                    }`}
                 >
                   {copied ? (
                     <>
@@ -290,8 +289,8 @@ const AdminQuestionManager: React.FC = () => {
                   )}
                 </button>
               </div>
-              <pre className="text-[10px] text-slate-600 font-mono overflow-x-auto bg-slate-100 p-4 rounded-xl leading-relaxed border border-slate-200">
-{jsonTemplate}
+              <pre className="text-[10px] text-slate-400 font-mono overflow-x-auto bg-slate-950 p-4 rounded-2xl leading-relaxed border border-slate-800 shadow-inner">
+                {jsonTemplate}
               </pre>
             </div>
           </div>

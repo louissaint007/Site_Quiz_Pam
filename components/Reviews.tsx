@@ -26,21 +26,25 @@ const Reviews: React.FC<ReviewsProps> = ({ user }) => {
                 .from('reviews')
                 .select(`
           *,
-          profiles:user_id (username, avatar_url)
+          profiles(username, avatars_url)
         `)
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
+            if (error) {
+                console.error("Supabase select error:", error);
+                throw error;
+            }
 
             const formattedReviews = data?.map((r: any) => ({
                 ...r,
                 username: r.profiles?.username || 'Utilisateur',
-                avatar_url: r.profiles?.avatar_url
+                avatar_url: r.profiles?.avatar_url || r.profiles?.avatars_url
             })) || [];
 
             setReviews(formattedReviews);
         } catch (err: any) {
-            console.error("Error fetching reviews:", err.message);
+            console.error("Error fetching reviews:", err);
+            showNotification("Erè nan resevwa avis yo: " + err.message, 'error');
         } finally {
             setIsLoading(false);
         }
