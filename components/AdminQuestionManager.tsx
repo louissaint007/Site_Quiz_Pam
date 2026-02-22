@@ -1,11 +1,18 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AdminQuestionManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'manual' | 'import'>('manual');
+  const [activeTab, setActiveTab] = useState<'manual' | 'import' | 'manage'>('manual');
   const [isUploading, setIsUploading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>(null);
 
   const [manualQuestion, setManualQuestion] = useState({
     question_text: '',
@@ -114,6 +121,106 @@ const AdminQuestionManager: React.FC = () => {
     reader.readAsText(file);
   };
 
+  useEffect(() => {
+    if (activeTab === 'manage') {
+      fetchQuestions();
+    }
+  }, [activeTab]);
+
+  const fetchQuestions = async () => {
+    setLoadingQuestions(true);
+    try {
+      const { data, error } = await supabase.from('questions').select('*');
+      if (error) {
+        alert("Erreur de récupération des questions: " + error.message);
+        throw error;
+      }
+      // Since there's no created_at, let's just reverse the array so newest might be first if uuid is somewhat sequential
+      setQuestions((data || []).reverse());
+    } catch (err: any) {
+      console.error("Error fetching questions:", err);
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
+  const handleDeleteQuestion = async (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Voulez-vous vraiment supprimer cette question ?")) return;
+    try {
+      const { error } = await supabase.from('questions').delete().eq('id', id);
+      if (error) throw error;
+      setQuestions(questions.filter(q => q.id !== id));
+      alert("Question supprimée !");
+    } catch (err: any) {
+      console.error("Error deleting question:", err);
+      alert(`Erreur: ${err.message}`);
+    }
+  };
+
+  const filteredQuestions = questions.filter(q => {
+    const matchesSearch = q.question_text?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter ? q.category === categoryFilter : true;
+    return matchesSearch && matchesCategory;
+  });
+
+  const uniqueCategories = Array.from(new Set(questions.map(q => q.category).filter(Boolean)));
+
+  const handleEditClick = (q: any) => {
+    setEditingQuestionId(q.id);
+    setEditForm({
+      question_text: q.question_text || '',
+      options: Array.isArray(q.options) ? [...q.options] : ['', '', '', ''],
+      correct_index: q.correct_index ?? 0,
+      category: q.category || '',
+      difficulty: q.difficulty ?? 1,
+      is_for_contest: q.is_for_contest ?? false,
+      is_for_solo: q.is_for_solo ?? true
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingQuestionId(null);
+    setEditForm(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingQuestionId || !editForm) return;
+
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .update({
+          question_text: editForm.question_text,
+          options: editForm.options,
+          correct_index: editForm.correct_index,
+          category: editForm.category,
+          difficulty: editForm.difficulty,
+          difficulty_level: editForm.difficulty, // keep them synced if needed
+          is_for_contest: editForm.is_for_contest,
+          is_for_solo: editForm.is_for_solo
+        })
+        .eq('id', editingQuestionId);
+
+      if (error) throw error;
+
+      // Update local state without fetching all again
+      setQuestions(questions.map(q =>
+        q.id === editingQuestionId
+          ? { ...q, ...editForm }
+          : q
+      ));
+
+      alert("Question modifiée avec succès !");
+      setEditingQuestionId(null);
+      setEditForm(null);
+    } catch (err: any) {
+      console.error("Error updating question:", err);
+      alert(`Erreur: ${err.message}`);
+    }
+  };
+
   return (
     <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-slate-800 shadow-xl overflow-hidden mt-8">
       <div className="flex border-b border-slate-800 mb-6">
@@ -129,10 +236,187 @@ const AdminQuestionManager: React.FC = () => {
         >
           Importation JSON
         </button>
+        <button
+          onClick={() => setActiveTab('manage')}
+          className={`flex-1 py-4 font-black uppercase tracking-widest text-xs transition-colors ${activeTab === 'manage' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-500 hover:text-slate-400'}`}
+        >
+          Gestion des Questions
+        </button>
       </div>
 
       <div className="p-6">
-        {activeTab === 'manual' ? (
+        {activeTab === 'manage' ? (
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <input
+                type="text"
+                placeholder="Rechercher une question..."
+                className="flex-1 p-4 bg-slate-800 border border-slate-700 rounded-2xl text-white font-bold outline-none focus:ring-2 ring-blue-500"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              <select
+                className="p-4 bg-slate-800 border border-slate-700 rounded-2xl text-white font-bold outline-none focus:ring-2 ring-blue-500"
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+              >
+                <option value="">Toutes les catégories</option>
+                {uniqueCategories.map((cat: any) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {loadingQuestions ? (
+              <div className="text-center py-12 text-slate-400 font-bold animate-pulse">
+                Chargement des questions...
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                {filteredQuestions.length === 0 ? (
+                  <div className="text-center py-12 text-slate-500 font-bold">
+                    Aucune question trouvée.
+                  </div>
+                ) : (
+                  filteredQuestions.map(q => (
+                    <div key={q.id} className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 hover:border-slate-600 transition-colors">
+                      {editingQuestionId === q.id ? (
+                        <div className="space-y-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Question</label>
+                            <textarea
+                              className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-bold outline-none focus:ring-1 ring-blue-500 text-sm resize-none"
+                              value={editForm.question_text}
+                              onChange={e => setEditForm({ ...editForm, question_text: e.target.value })}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {editForm.options.map((opt: string, idx: number) => (
+                              <div key={idx} className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-500 uppercase ml-1 flex justify-between">
+                                  Option {String.fromCharCode(65 + idx)}
+                                  <span className="flex items-center gap-1 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`correct_${q.id}`}
+                                      checked={editForm.correct_index === idx}
+                                      onChange={() => setEditForm({ ...editForm, correct_index: idx })}
+                                      className="w-3 h-3 text-green-500 bg-slate-800 border-slate-700"
+                                    />
+                                    <span className="text-green-500 text-[9px]">Bonne</span>
+                                  </span>
+                                </label>
+                                <input
+                                  type="text"
+                                  className={`w-full p-3 bg-slate-900 border rounded-xl text-sm text-white font-bold outline-none focus:ring-1 ${editForm.correct_index === idx ? 'border-green-500/50 ring-green-500' : 'border-slate-700 ring-blue-500'}`}
+                                  value={opt}
+                                  onChange={e => {
+                                    const newOpts = [...editForm.options];
+                                    newOpts[idx] = e.target.value;
+                                    setEditForm({ ...editForm, options: newOpts });
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex gap-4">
+                            <div className="flex-1 space-y-1">
+                              <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Catégorie</label>
+                              <input
+                                type="text"
+                                className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white font-bold outline-none focus:ring-1 ring-blue-500"
+                                value={editForm.category}
+                                onChange={e => setEditForm({ ...editForm, category: e.target.value })}
+                              />
+                            </div>
+                            <div className="w-32 space-y-1">
+                              <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Niveau</label>
+                              <select
+                                className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white font-bold outline-none focus:ring-1 ring-blue-500"
+                                value={editForm.difficulty}
+                                onChange={e => setEditForm({ ...editForm, difficulty: parseInt(e.target.value) })}
+                              >
+                                <option value={1}>1</option>
+                                <option value={2}>2</option>
+                                <option value={3}>3</option>
+                                <option value={4}>4</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end gap-2 pt-2 border-t border-slate-700/50">
+                            <button
+                              onClick={cancelEdit}
+                              className="px-4 py-2 bg-slate-700 text-white text-xs font-bold rounded-xl hover:bg-slate-600 transition-colors"
+                            >
+                              Annuler
+                            </button>
+                            <button
+                              onClick={handleSaveEdit}
+                              className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-colors flex items-center gap-2"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                              Sauvegarder
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-2 flex-1">
+                            <h4 className="text-white font-bold text-sm">{q.question_text}</h4>
+                            <div className="flex flex-wrap gap-2">
+                              <span className="px-2 py-1 bg-slate-900 rounded-xl text-[10px] font-black uppercase text-blue-400 tracking-wider">
+                                {q.category}
+                              </span>
+                              <span className="px-2 py-1 bg-slate-900 rounded-xl text-[10px] font-black uppercase text-amber-400 tracking-wider">
+                                Niv. {q.difficulty}
+                              </span>
+                              {q.is_for_contest && (
+                                <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                                  Concours
+                                </span>
+                              )}
+                              {q.is_for_solo && (
+                                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                                  Solo
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              {q.options && Array.isArray(q.options) && q.options.map((opt: string, idx: number) => (
+                                <div key={idx} className={`text-xs p-2 rounded-xl bg-slate-900 border ${idx === q.correct_index ? 'border-green-500/50 text-green-400 font-bold' : 'border-slate-800 text-slate-400'}`}>
+                                  {String.fromCharCode(65 + idx)}. {opt}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <button
+                              onClick={() => handleEditClick(q)}
+                              className="p-3 bg-blue-500/10 text-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20"
+                              title="Modifier la question"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteQuestion(q.id, e)}
+                              className="p-3 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all border border-red-500/20"
+                              title="Supprimer la question"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        ) : activeTab === 'manual' ? (
           <form onSubmit={handleManualSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-500 uppercase ml-2">Question</label>
