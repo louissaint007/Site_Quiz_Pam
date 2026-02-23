@@ -16,6 +16,7 @@ import Reviews from './components/Reviews';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { calculateQuestionXp, calculateLevel, getLevelTitle, getPrestigeStyle } from './utils/xp';
 import AdminSettings from './components/AdminSettings';
+import AdBlock from './components/AdBlock';
 
 const MONCASH_GATEWAY_URL = 'https://page-moncash-quiz-pam.vercel.app/';
 
@@ -765,6 +766,11 @@ const App: React.FC = () => {
       <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8">
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl mb-6 font-bold text-center uppercase text-xs">{error}</div>}
 
+        {/* Global Ad Block (Except Contest views and Playing states) */}
+        {['landing', 'home', 'profile', 'reviews', 'my-contests'].includes(view) && (
+          <AdBlock adSlot="6184368307" className="mb-8 bg-slate-800/20 rounded-2xl p-4" />
+        )}
+
         {view === 'landing' && (
           <div className="space-y-24 py-12">
             {/* Hero Section */}
@@ -998,6 +1004,9 @@ const App: React.FC = () => {
 
         {gameState === 'playing' && questions[currentIndex] && (
           <div className="max-w-3xl mx-auto pt-8 animate-in fade-in zoom-in">
+            {view === 'solo' && (
+              <AdBlock adSlot="9183909076" className="mb-6 bg-slate-800/20 rounded-2xl p-4" />
+            )}
             <div className="flex justify-between items-center mb-6 px-4">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Kesyon {currentIndex + 1} / {questions.length}</span>
               <div className="text-right">
@@ -1024,6 +1033,9 @@ const App: React.FC = () => {
 
         {gameState === 'result' && (
           <div className="text-center py-20 space-y-8 animate-in zoom-in">
+            {view === 'solo' && (
+              <AdBlock adSlot="9183909076" className="mb-8 bg-slate-800/20 rounded-2xl mx-auto max-w-3xl p-4" />
+            )}
             <div className="w-32 h-32 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto text-6xl mb-4 shadow-2xl">🏆</div>
             <h2 className="text-6xl md:text-8xl font-black text-white mb-2 tracking-tighter uppercase">Nòt: {score}</h2>
             <div className="space-y-1">
