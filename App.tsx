@@ -763,13 +763,8 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8">
+      <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 flex flex-col min-h-[calc(100vh-100px)]">
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl mb-6 font-bold text-center uppercase text-xs">{error}</div>}
-
-        {/* Global Ad Block (Except Contest views and Playing states) */}
-        {['landing', 'home', 'profile', 'reviews', 'my-contests'].includes(view) && (
-          <AdBlock adSlot="6184368307" className="mb-8 bg-slate-800/20 rounded-2xl p-4" />
-        )}
 
         {view === 'landing' && (
           <div className="space-y-24 py-12">
@@ -1003,48 +998,55 @@ const App: React.FC = () => {
         )}
 
         {gameState === 'playing' && questions[currentIndex] && (
-          <div className="max-w-3xl mx-auto pt-8 animate-in fade-in zoom-in">
-            {view === 'solo' && (
-              <AdBlock adSlot="9183909076" className="mb-6 bg-slate-800/20 rounded-2xl p-4" />
-            )}
-            <div className="flex justify-between items-center mb-6 px-4">
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Kesyon {currentIndex + 1} / {questions.length}</span>
-              <div className="text-right">
-                <span className="text-xl font-black text-blue-400 block">{score} PTS</span>
-                <span className="text-[9px] text-slate-500 font-bold">⏱️ {(totalTimeMs / 1000).toFixed(2)}s</span>
+          <div className="max-w-3xl mx-auto pt-8 animate-in fade-in zoom-in h-full flex flex-col justify-between">
+            <div className="flex-1">
+              <div className="flex justify-between items-center mb-6 px-4">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Kesyon {currentIndex + 1} / {questions.length}</span>
+                <div className="text-right">
+                  <span className="text-xl font-black text-blue-400 block">{score} PTS</span>
+                  <span className="text-[9px] text-slate-500 font-bold">⏱️ {(totalTimeMs / 1000).toFixed(2)}s</span>
+                </div>
               </div>
-            </div>
-            <QuizCard
-              question={questions[currentIndex]}
-              onSelect={handleSelect}
-              selectedId={selectedAnswer}
-              showCorrect={isShowingCorrect}
-            />
-            {!isShowingCorrect && (
-              <GameTimer
-                duration={10}
-                onTimeUp={() => handleSelect(-1)}
-                isActive={gameState === 'playing' && !isShowingCorrect}
-                onTick={setTimeLeft}
+              <QuizCard
+                question={questions[currentIndex]}
+                onSelect={handleSelect}
+                selectedId={selectedAnswer}
+                showCorrect={isShowingCorrect}
               />
+              {!isShowingCorrect && (
+                <GameTimer
+                  duration={10}
+                  onTimeUp={() => handleSelect(-1)}
+                  isActive={gameState === 'playing' && !isShowingCorrect}
+                  onTick={setTimeLeft}
+                />
+              )}
+            </div>
+
+            {/* Solo Game Playing Ad */}
+            {view === 'solo' && (
+              <AdBlock adSlot="9183909076" className="mt-8 bg-slate-800/20 rounded-2xl p-4" />
             )}
           </div>
         )}
 
         {gameState === 'result' && (
-          <div className="text-center py-20 space-y-8 animate-in zoom-in">
+          <div className="text-center flex flex-col items-center justify-between min-h-[60vh] py-10 animate-in zoom-in">
+            <div className="w-full">
+              <div className="w-32 h-32 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto text-6xl mb-4 shadow-2xl">🏆</div>
+              <h2 className="text-6xl md:text-8xl font-black text-white mb-2 tracking-tighter uppercase">Nòt: {score}</h2>
+              <div className="space-y-1">
+                <p className="text-slate-400 font-bold uppercase tracking-[0.4em]">Tan Total: {(totalTimeMs / 1000).toFixed(2)}s</p>
+                <p className="text-[10px] text-slate-500">Règ: Score segon nan egalitarian se Tan ki depataje.</p>
+              </div>
+              <div className="pt-8">
+                <button onClick={() => { setView('home'); setGameState('ready'); }} className="bg-blue-600 text-white px-16 py-5 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-xl active:translate-y-2 transition-all hover:bg-blue-500">Tounen Lobby</button>
+              </div>
+            </div>
+            {/* Solo Game Result Ad */}
             {view === 'solo' && (
-              <AdBlock adSlot="9183909076" className="mb-8 bg-slate-800/20 rounded-2xl mx-auto max-w-3xl p-4" />
+              <AdBlock adSlot="9183909076" className="mt-12 bg-slate-800/20 rounded-2xl mx-auto max-w-3xl p-4 w-full" />
             )}
-            <div className="w-32 h-32 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto text-6xl mb-4 shadow-2xl">🏆</div>
-            <h2 className="text-6xl md:text-8xl font-black text-white mb-2 tracking-tighter uppercase">Nòt: {score}</h2>
-            <div className="space-y-1">
-              <p className="text-slate-400 font-bold uppercase tracking-[0.4em]">Tan Total: {(totalTimeMs / 1000).toFixed(2)}s</p>
-              <p className="text-[10px] text-slate-500">Règ: Score segon nan egalitarian se Tan ki depataje.</p>
-            </div>
-            <div className="pt-8">
-              <button onClick={() => { setView('home'); setGameState('ready'); }} className="bg-blue-600 text-white px-16 py-5 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-xl active:translate-y-2 transition-all hover:bg-blue-500">Tounen Lobby</button>
-            </div>
           </div>
         )}
 
@@ -1062,6 +1064,13 @@ const App: React.FC = () => {
             {adminTab === 'settings' && <AdminSettings />}
           </div>
         )}
+
+        <div className="mt-auto pt-16">
+          {/* Global Ad Block (Except Contest views and Playing states) */}
+          {['landing', 'home', 'profile', 'reviews', 'my-contests'].includes(view) && (
+            <AdBlock adSlot="6184368307" className="bg-slate-800/40 rounded-3xl p-6 border border-slate-700/50" />
+          )}
+        </div>
       </main>
 
       {/* Lightbox Modal */}
