@@ -543,9 +543,8 @@ const AdminContestManager: React.FC = () => {
               </div>
             </div>
 
-            {/* IMAGE UPLOAD SECTION */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase ml-2">Imaj Konkou (Upload)</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase ml-2">Imaj Konkou (Imaj / GIF)</label>
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
@@ -574,7 +573,7 @@ const AdminContestManager: React.FC = () => {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept="image/*"
+                  accept="image/*,.gif"
                   className="hidden"
                 />
                 {isUploadingImage && (

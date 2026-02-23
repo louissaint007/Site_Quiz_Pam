@@ -144,3 +144,10 @@ export interface Review {
   comment: string;
   created_at: string;
 }
+
+export interface SiteSettings {
+  id: number;
+  carousel_images: string[];
+  solo_game_image_url: string | null;
+  updated_at: string;
+}

@@ -15,6 +15,7 @@ import FinalistArena from './components/FinalistArena';
 import Reviews from './components/Reviews';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { calculateQuestionXp, calculateLevel, getLevelTitle, getPrestigeStyle } from './utils/xp';
+import AdminSettings from './components/AdminSettings';
 
 const MONCASH_GATEWAY_URL = 'https://page-moncash-quiz-pam.vercel.app/';
 
@@ -43,6 +44,7 @@ const App: React.FC = () => {
   const [hasPendingSync, setHasPendingSync] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [gameAnswers, setGameAnswers] = useState<{ questionId: string, isCorrect: boolean, timeSpent: number }[]>([]);
+  const [siteSettings, setSiteSettings] = useState<any>(null);
   const [fraudWarnings, setFraudWarnings] = useState(0);
   const [selectedPrizeImage, setSelectedPrizeImage] = useState<string | null>(null);
 
@@ -59,6 +61,10 @@ const App: React.FC = () => {
       return;
     }
     try {
+      // Also fetch settings when we fetch contests for the Lobby display
+      const { data: settingsData } = await supabase.from('site_settings').select('*').eq('id', 1).single();
+      if (settingsData) setSiteSettings(settingsData);
+
       const { data: contestsData, error } = await supabase.from('contests').select('*').order('created_at', { ascending: false });
       if (error) throw error;
 
@@ -776,12 +782,12 @@ const App: React.FC = () => {
                   QuizPam se premye platfòm kilti jeneral an Ayiti ki pèmèt ou teste konesans ou, defiye zanmi w, epi genyen prim an lajan kach.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                  <button onClick={() => setView('home')} className="px-10 py-5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl uppercase text-xs tracking-widest shadow-2xl shadow-blue-600/20 transition-all active:scale-95">ANTRE NAN JWÈT LA</button>
-                  <button onClick={() => startGame('solo')} className="px-10 py-5 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-2xl uppercase text-xs tracking-widest border border-white/5 transition-all active:scale-95">PRATIK SOLO</button>
+                  <button onClick={() => setView('home')} className="px-10 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black rounded-[2rem] uppercase text-xs tracking-widest shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:shadow-[0_0_40px_rgba(59,130,246,0.7)] transition-all active:scale-95 border border-white/10">ANTRE NAN JWÈT LA</button>
+                  <button onClick={() => startGame('solo')} className="px-10 py-5 bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md text-white font-black rounded-[2rem] uppercase text-xs tracking-widest border border-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all active:scale-95">PRATIK SOLO</button>
                 </div>
               </div>
               <div className="flex-1 relative">
-                <div className="absolute -inset-10 bg-blue-600/20 blur-[100px] rounded-full"></div>
+                <div className="absolute -inset-10 bg-gradient-to-tr from-blue-600/30 to-purple-600/30 blur-[100px] rounded-full animate-pulse"></div>
                 <div className="relative bg-slate-800 rounded-[3rem] p-4 border border-white/10 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
                   <div className="bg-slate-900 rounded-[2.5rem] overflow-hidden">
                     <div className="p-8 space-y-6">
@@ -883,20 +889,56 @@ const App: React.FC = () => {
         )}
 
         {view === 'home' && (
-          <div className="space-y-12 py-12">
+          <div className="space-y-12 py-12 animate-in fade-in duration-500">
+            {/* Carousel Banner Space */}
+            {siteSettings?.carousel_images && siteSettings.carousel_images.length > 0 && (
+              <div className="w-full h-48 md:h-64 rounded-[2.5rem] overflow-hidden relative shadow-2xl border border-white/5 mx-auto mb-12">
+                <div className="flex w-full h-full animate-[slide_15s_infinite]">
+                  {siteSettings.carousel_images.map((url: string, idx: number) => (
+                    <img key={idx} src={url} alt={`Banner ${idx}`} className="w-full h-full object-cover shrink-0" />
+                  ))}
+                  {/* Duplicate first image for seamless loop if there are multiple */}
+                  {siteSettings.carousel_images.length > 1 && (
+                    <img src={siteSettings.carousel_images[0]} alt="Banner Dup" className="w-full h-full object-cover shrink-0" />
+                  )}
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent pointer-events-none"></div>
+                <style>{`
+                  @keyframes slide {
+                    0%, 20% { transform: translateX(0); }
+                    ${siteSettings.carousel_images.length > 1 ? `
+                      25%, 45% { transform: translateX(-100%); }
+                      50%, 70% { transform: translateX(-200%); }
+                      75%, 95% { transform: translateX(-300%); }
+                    ` : ''}
+                    100% { transform: ${siteSettings.carousel_images.length > 1 ? `translateX(-${siteSettings.carousel_images.length * 100}%)` : `translateX(0)`}; }
+                  }
+                `}</style>
+              </div>
+            )}
+
             <div className="text-center space-y-4">
-              <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase mb-4">Lobby <span className="text-red-500">Jwèt Yo</span></h1>
+              <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase mb-4 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">Lobby <span className="text-red-500">Jwèt Yo</span></h1>
               <p className="text-lg text-slate-400 max-w-md mx-auto">Chwazi yon konkou oswa antrene tèt ou an Solo.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="bg-slate-800/40 rounded-[2.5rem] border-2 border-dashed border-slate-700 p-8 flex flex-col justify-between group hover:border-blue-500/50 cursor-pointer transition-all" onClick={() => startGame('solo')}>
-                <div className="space-y-4">
-                  <div className="w-16 h-16 bg-slate-700/50 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">🕹️</div>
-                  <h3 className="text-2xl font-black text-white">Pratik Solo</h3>
-                  <p className="text-slate-500 text-sm">Chaje yon pack 10 kesyon nèf epi jwe menm si w pa gen entènèt.</p>
+              <div
+                className={`bg-slate-800/40 rounded-[2.5rem] border-2 border-dashed border-slate-700 p-8 flex flex-col justify-between group hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] cursor-pointer transition-all relative overflow-hidden`}
+                onClick={() => startGame('solo')}
+              >
+                {siteSettings?.solo_game_image_url && (
+                  <div className="absolute inset-0 z-0">
+                    <img src={siteSettings.solo_game_image_url} alt="Solo Cover" className="w-full h-full object-cover opacity-30 mix-blend-screen group-hover:scale-110 group-hover:opacity-50 transition-all duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"></div>
+                  </div>
+                )}
+                <div className="space-y-4 relative z-10">
+                  <div className="w-16 h-16 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all">🕹️</div>
+                  <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Pratik Solo</h3>
+                  <p className="text-slate-400 text-sm">Chaje yon pack 10 kesyon nèf epi jwe menm si w pa gen entènèt.</p>
                 </div>
-                <button className="mt-8 w-full py-4 bg-slate-700 group-hover:bg-blue-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest transition-all">KÒMANSE SOLO</button>
+                <button className="relative z-10 mt-8 w-full py-4 bg-slate-700 group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-indigo-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-xl group-hover:shadow-blue-600/30">KÒMANSE SOLO</button>
               </div>
 
               {contests.map(c => {
@@ -905,40 +947,47 @@ const App: React.FC = () => {
                 const isObjectPrize = c.prize_type === 'object';
 
                 return (
-                  <div key={c.id} className="bg-slate-800 rounded-[2.5rem] border border-white/5 overflow-hidden flex flex-col group hover:scale-[1.02] transition-all shadow-2xl relative">
+                  <div key={c.id} className="bg-slate-800/80 backdrop-blur-xl rounded-[2.5rem] border border-white/10 hover:border-blue-500/30 overflow-hidden flex flex-col group hover:-translate-y-2 transition-all duration-300 shadow-xl hover:shadow-[0_20px_50px_rgba(59,130,246,0.15)] relative">
                     {/* Header Media */}
-                    <div className="h-48 bg-slate-700 relative overflow-hidden flex items-end p-6">
+                    <div className="h-48 bg-slate-900 relative overflow-hidden flex items-end p-6 group-hover:after:absolute group-hover:after:inset-0 group-hover:after:bg-blue-500/10 group-hover:after:mix-blend-overlay">
                       {c.media_type === 'video' || (c.image_url?.endsWith('.mp4')) ? (
-                        <video src={c.image_url} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" />
+                        <video src={c.image_url} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                       ) : (
-                        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `linear-gradient(to bottom, transparent, rgba(15, 23, 42, 0.98)), url(${c.image_url})` }} />
+                        <div className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-700" style={{ backgroundImage: `linear-gradient(to bottom, transparent, rgba(15, 23, 42, 0.98)), url(${c.image_url})` }} />
                       )}
-                      <h4 className="relative z-10 text-xl font-black text-white truncate drop-shadow-lg">{c.title}</h4>
+                      <h4 className="relative z-10 text-xl font-black text-white truncate drop-shadow-xl">{c.title}</h4>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="px-6 py-3 bg-slate-900/40 border-b border-white/5">
-                      <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden">
+                    <div className="px-6 py-4 bg-slate-900/60 border-b border-white/5 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner flex mb-1">
                         <div
-                          className="h-full bg-gradient-to-r from-yellow-700 via-yellow-400 to-yellow-700 shadow-[0_0_12px_rgba(250,204,21,0.6)] animate-pulse"
+                          className="h-full bg-gradient-to-r from-yellow-500 to-yellow-300 relative"
                           style={{ width: `${Math.max(2, progress)}%` }}
-                        />
+                        >
+                          <div className="absolute top-0 bottom-0 left-0 right-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwYXRoIGQ9Ik0wLDBMODw4TTAsOEw4LDBaIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIgc3Ryb2tlLXdpZHRoPSIzIi8+PC9zdmc+')] opacity-50 animated-stripe"></div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{c.current_participants} Patisipan</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{targetParticipants} Revi</span>
                       </div>
                     </div>
 
-                    <div className="p-6 space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-yellow-400 font-black">{(c.entry_fee || 0)} HTG</span>
-                        <div className="flex items-center gap-2 bg-slate-900/60 p-2 pl-3 rounded-2xl border border-white/5">
-                          <span className="text-green-400 font-black text-[10px]">
+                    <div className="p-6 space-y-4 flex-1 flex flex-col justify-end">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-yellow-400 font-black text-lg drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]">{(c.entry_fee || 0)} HTG</span>
+                        <div className="flex items-center gap-2 bg-gradient-to-r from-slate-900 to-slate-800 p-2 pl-3 rounded-2xl border border-white/10 shadow-inner">
+                          <span className="text-green-400 font-black text-[10px] drop-shadow-md">
                             {isObjectPrize ? c.prize_description : `${c.grand_prize} HTG`}
                           </span>
                           {isObjectPrize && c.prize_image_url && (
-                            <img src={c.prize_image_url} onClick={(e) => { e.stopPropagation(); setSelectedPrizeImage(c.prize_image_url!); }} className="w-8 h-8 rounded-lg object-cover cursor-zoom-in" />
+                            <img src={c.prize_image_url} onClick={(e) => { e.stopPropagation(); setSelectedPrizeImage(c.prize_image_url!); }} className="w-8 h-8 rounded-lg object-cover cursor-zoom-in border border-white/10 transition-transform hover:scale-110" />
                           )}
                         </div>
                       </div>
-                      <button onClick={() => { setSelectedContest(c); setView('contest-detail'); }} className="w-full py-4 bg-blue-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest hover:bg-blue-500 transition-colors">Patisipe</button>
+                      <button onClick={() => { setSelectedContest(c); setView('contest-detail'); }} className="w-full py-4 bg-slate-700 group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-indigo-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest transition-all shadow-lg active:scale-95 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]">Patisipe</button>
                     </div>
                   </div>
                 );
@@ -991,12 +1040,14 @@ const App: React.FC = () => {
           <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex gap-4 border-b border-white/5 pb-4 overflow-x-auto">
               <button onClick={() => setAdminTab('stats')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'stats' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Stats</button>
-              <button onClick={() => setAdminTab('questions')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'questions' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Kesyon</button>
               <button onClick={() => setAdminTab('contests')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'contests' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Konkou</button>
+              <button onClick={() => setAdminTab('questions')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'questions' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Kesyon</button>
+              <button onClick={() => setAdminTab('settings')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Anviwònman</button>
             </div>
             {adminTab === 'stats' && <AdminStats />}
             {adminTab === 'questions' && <AdminQuestionManager />}
             {adminTab === 'contests' && <AdminContestManager />}
+            {adminTab === 'settings' && <AdminSettings />}
           </div>
         )}
       </main>
