@@ -972,7 +972,7 @@ const App: React.FC = () => {
                       </div>
                       <div className="flex justify-between items-center mt-1">
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{c.current_participants} Patisipan</span>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{targetParticipants} Revi</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{Math.floor(progress)}% Ranpli</span>
                       </div>
                     </div>
 
