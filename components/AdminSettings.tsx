@@ -223,7 +223,7 @@ const AdminSettings: React.FC = () => {
                 </div>
 
                 {/* Solo Game Section */}
-                <div className="space-y-4 pt-8">
+                <div className="space-y-4 pt-8 border-t border-slate-800">
                     <div className="flex justify-between items-center border-b border-slate-800 pb-4">
                         <div>
                             <h4 className="text-sm font-black text-white uppercase tracking-widest">Imaj Pratik Solo</h4>
@@ -270,8 +270,98 @@ const AdminSettings: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="hidden md:block w-1/2 text-slate-500 text-xs leading-relaxed max-w-sm">
-                            Imaj sa a ap parèt kòm background anndan bwat "Pratik Solo" a sou paj prensipal la. Nou rekòmande yon imaj fè nwa osinon yon ti jan fonse pou rann tèks blan an lizib.
+                    </div>
+                </div>
+
+                {/* Top Players Section */}
+                <div className="space-y-4 pt-8 border-t border-slate-800">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                        <div>
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Top Jwè yo (Semèn)</h4>
+                            <p className="text-[10px] text-slate-500 font-bold mt-1">Jere jwè ki parèt nan seksyon "Top Jwè" sou paj akèy la.</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* Search and Add */}
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Chèche yon itilizatè pa non..."
+                                className="w-full bg-slate-950 border border-slate-700 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-blue-500 transition-all pl-12"
+                                onChange={async (e) => {
+                                    const val = e.target.value;
+                                    if (val.length < 2) return;
+                                    const { data } = await supabase.from('profiles').select('id, username, avatar_url').ilike('username', `%${val}%`).limit(5);
+                                    (window as any).searchResults = data;
+                                    // Hacky way to trigger re-render for search results in a quick edit
+                                    fetchSettings();
+                                }}
+                            />
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </div>
+
+                            {/* Results Popover (Simplified) */}
+                            {(window as any).searchResults && (window as any).searchResults.length > 0 && (
+                                <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                    {(window as any).searchResults.map((u: any) => (
+                                        <button
+                                            key={u.id}
+                                            onClick={async () => {
+                                                if (!settings) return;
+                                                const currentTop = settings.top_players || [];
+                                                if (currentTop.find(tp => tp.id === u.id)) {
+                                                    showNotification("Jwè sa a deja nan lis la!", 'error');
+                                                    return;
+                                                }
+                                                const scoreStr = prompt("Antre pwen (stars) pou jwè sa a:");
+                                                if (!scoreStr) return;
+                                                const score = parseInt(scoreStr);
+                                                const newTop = [...currentTop, { ...u, score }];
+                                                await saveSettings({ top_players: newTop });
+                                                (window as any).searchResults = null;
+                                                fetchSettings();
+                                            }}
+                                            className="w-full p-4 flex items-center gap-4 hover:bg-slate-700 text-left transition-colors border-b border-slate-700/50 last:border-0"
+                                        >
+                                            <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900">
+                                                <img src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-full h-full object-cover" />
+                                            </div>
+                                            <span className="text-xs font-black text-white uppercase tracking-widest">{u.username}</span>
+                                            <span className="ml-auto text-[10px] font-bold text-blue-400 uppercase">Klike pou'w ajoute +</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* List of current top players */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {settings?.top_players && settings.top_players.length > 0 ? (
+                                settings.top_players.map((tp) => (
+                                    <div key={tp.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center gap-4 group">
+                                        <div className="w-12 h-12 rounded-xl border border-blue-500/30 overflow-hidden">
+                                            <img src={tp.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tp.username}`} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-black text-white uppercase tracking-widest">{tp.username}</div>
+                                            <div className="text-[10px] font-bold text-yellow-500 uppercase mt-1">⭐ {tp.score} Pwen</div>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                const newTop = settings.top_players?.filter(p => p.id !== tp.id) || [];
+                                                await saveSettings({ top_players: newTop });
+                                            }}
+                                            className="ml-auto w-8 h-8 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="col-span-full py-8 text-center text-slate-600 text-[10px] font-bold uppercase tracking-widest italic">Poko gen jwè nan lis la.</div>
+                            )}
                         </div>
                     </div>
                 </div>

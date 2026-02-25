@@ -149,5 +149,34 @@ export interface SiteSettings {
   id: number;
   carousel_images: string[];
   solo_game_image_url: string | null;
+  top_players?: { id: string, username: string, avatar_url: string | null, score: number }[];
+  updated_at: string;
+}
+
+export interface UserPaymentInfo {
+  id: string;
+  user_id: string;
+  phone_number: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_user_id: string;
+  sender_id: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface GameStory {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  target_words: string[];
+  difficulty: string;
+  created_at: string;
   updated_at: string;
 }

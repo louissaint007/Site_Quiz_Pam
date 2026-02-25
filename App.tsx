@@ -17,13 +17,18 @@ import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { calculateQuestionXp, calculateLevel, getLevelTitle, getPrestigeStyle } from './utils/xp';
 import AdminSettings from './components/AdminSettings';
 import AdBlock from './components/AdBlock';
-
-const MONCASH_GATEWAY_URL = 'https://page-moncash-quiz-pam.vercel.app/';
+import { ManualPaymentModal } from './components/ManualPaymentModal';
+import { FloatingChat } from './components/FloatingChat';
+import { AdminUserExplorer } from './components/AdminUserExplorer';
+import { AdminMessages } from './components/AdminMessages';
+import { logUserActivity } from './utils/audit';
+import { MoKwazeDinamik } from './components/MoKwazeDinamik';
+import { AdminStoryManager } from './components/AdminStoryManager';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
-  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena' | 'reviews' | 'my-contests'>('landing');
-  const [adminTab, setAdminTab] = useState<'stats' | 'questions' | 'contests'>('stats');
+  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena' | 'reviews' | 'my-contests' | 'mokwaze'>('landing');
+  const [adminTab, setAdminTab] = useState<'stats' | 'questions' | 'contests' | 'users' | 'messages' | 'settings' | 'stories'>('stats');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -51,6 +56,9 @@ const App: React.FC = () => {
 
   // Timer reference for ms tracking
   const questionStartTimeRef = useRef<number>(0);
+
+  // Manual Payment State
+  const [manualPaymentInfo, setManualPaymentInfo] = useState<{ amount: number, type: 'deposit' | 'entry_fee' | 'withdraw', contestId?: string } | null>(null);
 
   useEffect(() => {
     const pending = localStorage.getItem('quizpam_sync_queue');
@@ -160,6 +168,8 @@ const App: React.FC = () => {
         score: data.score,
         total_time_ms: data.total_time_ms
       }).eq('id', data.sessionId);
+
+      logUserActivity(data.userId, 'finish_solo', { score: data.score, timeMs: data.total_time_ms });
 
       // 2. Update User XP and Level
       // Fetch seen questions to detect farming BEFORE inserting new ones
@@ -372,6 +382,10 @@ const App: React.FC = () => {
       console.log("[INIT] Auth state changed:", event);
       if (!isMounted) return;
 
+      if (event === 'SIGNED_IN' && currentSession) {
+        logUserActivity(currentSession.user.id, 'login', { method: 'auth_state_change' });
+      }
+
       setSession(currentSession);
 
       if (currentSession) {
@@ -400,6 +414,9 @@ const App: React.FC = () => {
 
 
   const handleLogout = async () => {
+    if (user) {
+      logUserActivity(user.id, 'logout');
+    }
     await supabase.auth.signOut();
     setUser(null);
     setWallet(null);
@@ -454,6 +471,12 @@ const App: React.FC = () => {
         is_completed: false
       }).select().single();
       if (sessErr) throw sessErr;
+
+      logUserActivity(user.id, mode === 'solo' ? 'start_solo' : 'join_contest', {
+        mode,
+        contestId: currentContest?.id,
+        sessionId: gameSession.id
+      });
 
       const { data: fullQuestions } = await supabase.from('questions').select('*').in('id', selectedIds);
 
@@ -574,6 +597,8 @@ const App: React.FC = () => {
 
         if (partError) throw partError;
 
+        logUserActivity(user.id, 'join_contest', { contestId: contest.id, title: contest.title, fee: entryFee });
+
         // 3. Increment current_participants count
         const { error: updateError } = await supabase
           .from('contests')
@@ -599,46 +624,8 @@ const App: React.FC = () => {
 
   const redirectToMonCash = async (amount: number, type: 'deposit' | 'entry_fee', contestId?: string) => {
     if (!user) { setView('auth'); return; }
-
-    // Generate a combined ID: userId__uuid
-    // This ensures we can ALWAYS recover the user_id from the reference
-    const orderId = `${user.id}__${crypto.randomUUID()}`;
-
-    try {
-      // Create a pending transaction record first
-      await supabase.from('transactions').insert({
-        id: orderId,
-        user_id: user.id,
-        amount: amount,
-        type: type,
-        status: 'pending',
-        description: type === 'deposit' ? 'Depo Balans' : `Antre Konkou`,
-        reference_id: contestId || null,
-        payment_method: 'MONCASH',
-        metadata: {
-          user_id: user.id,
-          initiated_at: new Date().toISOString()
-        }
-      });
-
-      // Refresh transactions list to show the pending one
-      fetchUserAndWallet(user.id, session);
-    } catch (err) {
-      console.error("Error creating pending transaction:", err);
-    }
-
-    const params = new URLSearchParams({
-      userId: user.id,
-      username: user.username,
-      amount: amount.toString(),
-      orderId: orderId,
-      type: type,
-      description: type === 'deposit' ? 'Depo Balans QuizPam' : `Antre Konkou`,
-    });
-    if (contestId) params.append('contestId', contestId);
-
-    const url = `${MONCASH_GATEWAY_URL}?${params.toString()}`;
-    window.open(url, '_blank');
+    logUserActivity(user.id, type === 'deposit' ? 'deposit' : 'join_contest', { amount, method: 'manual_intent', contestId });
+    setManualPaymentInfo({ amount, type, contestId });
   };
 
   const handleMonCashWithdrawal = async (amount: number, phone: string) => {
@@ -650,15 +637,8 @@ const App: React.FC = () => {
       return;
     }
 
-    const params = new URLSearchParams({
-      action: 'withdraw',
-      userId: user.id,
-      amount: amount.toString(),
-      phone: phone
-    });
-
-    const url = `${MONCASH_GATEWAY_URL}?${params.toString()}`;
-    window.open(url, '_blank');
+    logUserActivity(user.id, 'withdraw', { amount, method: 'manual_intent', phone });
+    setManualPaymentInfo({ amount, type: 'withdraw' });
   };
 
   if (isLoading) return (
@@ -782,9 +762,10 @@ const App: React.FC = () => {
                 <p className="text-xl text-slate-400 max-w-lg">
                   QuizPam se premye platfòm kilti jeneral an Ayiti ki pèmèt ou teste konesans ou, defiye zanmi w, epi genyen prim an lajan kach.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row gap-4 pt-4 flex-wrap justify-center md:justify-start">
                   <button onClick={() => setView('home')} className="px-10 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black rounded-[2rem] uppercase text-xs tracking-widest shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:shadow-[0_0_40px_rgba(59,130,246,0.7)] transition-all active:scale-95 border border-white/10">ANTRE NAN JWÈT LA</button>
                   <button onClick={() => startGame('solo')} className="px-10 py-5 bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md text-white font-black rounded-[2rem] uppercase text-xs tracking-widest border border-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all active:scale-95">PRATIK SOLO</button>
+                  <button onClick={() => setView('mokwaze')} className="px-10 py-5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-black rounded-[2rem] uppercase text-xs tracking-widest shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-all active:scale-95 border border-white/10 flex items-center gap-2">⏱️ MO KWAZE DINAMIK</button>
                 </div>
               </div>
               <div className="flex-1 relative">
@@ -797,13 +778,28 @@ const App: React.FC = () => {
                         <span className="text-yellow-500 font-black">TOP JWÈ</span>
                       </div>
                       <div className="space-y-4">
-                        {[1, 2, 3].map(i => (
-                          <div key={i} className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-2xl border border-white/5">
-                            <div className="w-10 h-10 rounded-full bg-slate-700"></div>
-                            <div className="flex-1 h-2 bg-slate-700 rounded-full"></div>
-                            <div className="w-12 h-2 bg-blue-500 rounded-full"></div>
-                          </div>
-                        ))}
+                        {siteSettings?.top_players && siteSettings.top_players.length > 0 ? (
+                          siteSettings.top_players.map((tp: any, i: number) => (
+                            <div key={tp.id} className="flex items-center gap-4 bg-slate-800/50 p-3 rounded-2xl border border-white/5 animate-in slide-in-from-right duration-500" style={{ animationDelay: `${i * 100}ms` }}>
+                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-700 border border-white/10">
+                                <img src={tp.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tp.username}`} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-[10px] font-black uppercase text-white tracking-widest leading-none">{tp.username}</p>
+                                <p className="text-[9px] font-bold text-yellow-500 uppercase mt-1">⭐ {tp.score} Pwen</p>
+                              </div>
+                              <div className="text-[10px] font-black text-slate-500 italic">#{i + 1}</div>
+                            </div>
+                          ))
+                        ) : (
+                          [1, 2, 3].map(i => (
+                            <div key={i} className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-2xl border border-white/5 opacity-50">
+                              <div className="w-10 h-10 rounded-full bg-slate-700 animate-pulse"></div>
+                              <div className="flex-1 h-2 bg-slate-700 rounded-full animate-pulse"></div>
+                              <div className="w-12 h-2 bg-blue-500/20 rounded-full"></div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>
@@ -888,6 +884,9 @@ const App: React.FC = () => {
         {view === 'reviews' && (
           <Reviews user={user} />
         )}
+        {view === 'mokwaze' && (
+          <MoKwazeDinamik onExit={() => setView('home')} />
+        )}
 
         {view === 'home' && (
           <div className="space-y-12 py-12 animate-in fade-in duration-500">
@@ -940,6 +939,20 @@ const App: React.FC = () => {
                   <p className="text-slate-400 text-sm">Chaje yon pack 10 kesyon nèf epi jwe menm si w pa gen entènèt.</p>
                 </div>
                 <button className="relative z-10 mt-8 w-full py-4 bg-slate-700 group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-indigo-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-xl group-hover:shadow-blue-600/30">KÒMANSE SOLO</button>
+              </div>
+
+              {/* MO KWAZE DINAMIK CARD */}
+              <div
+                className="bg-slate-800/40 rounded-[2.5rem] border-2 border-dashed border-amber-500/50 p-8 flex flex-col justify-between group hover:border-amber-500 hover:shadow-[0_0_30px_rgba(245,158,11,0.3)] cursor-pointer transition-all relative overflow-hidden"
+                onClick={() => setView('mokwaze')}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="space-y-4 relative z-10">
+                  <div className="w-16 h-16 bg-amber-500/20 text-amber-500 border border-amber-500/30 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 shadow-lg transition-all animate-bounce">⏱️</div>
+                  <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Mo Kwaze Dinamik</h3>
+                  <p className="text-slate-400 text-sm">Chèche mo yo rapid anvan 60 segonn fini. Tout lèt yo ap chanje plas siw pèdi tan!</p>
+                </div>
+                <button className="relative z-10 mt-8 w-full py-4 bg-amber-600 group-hover:bg-gradient-to-r group-hover:from-amber-500 group-hover:to-orange-500 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-xl group-hover:shadow-amber-500/50">JWE KOUNYEA</button>
               </div>
 
               {contests.map(c => {
@@ -1053,15 +1066,21 @@ const App: React.FC = () => {
         {view === 'admin' && user?.is_admin && (
           <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex gap-4 border-b border-white/5 pb-4 overflow-x-auto">
-              <button onClick={() => setAdminTab('stats')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'stats' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Stats</button>
-              <button onClick={() => setAdminTab('contests')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'contests' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Konkou</button>
-              <button onClick={() => setAdminTab('questions')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'questions' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Kesyon</button>
-              <button onClick={() => setAdminTab('settings')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Anviwònman</button>
+              <button onClick={() => setAdminTab('stats')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'stats' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Stats</button>
+              <button onClick={() => setAdminTab('contests')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'contests' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Konkou</button>
+              <button onClick={() => setAdminTab('questions')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'questions' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Kesyon</button>
+              <button onClick={() => setAdminTab('users')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'users' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Itilizatè & Kòb</button>
+              <button onClick={() => setAdminTab('messages')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'messages' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Mesaj Chat</button>
+              <button onClick={() => setAdminTab('settings')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Anviwònman</button>
+              <button onClick={() => setAdminTab('stories')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'stories' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Istwa (Jwèt)</button>
             </div>
             {adminTab === 'stats' && <AdminStats />}
             {adminTab === 'questions' && <AdminQuestionManager />}
             {adminTab === 'contests' && <AdminContestManager />}
+            {adminTab === 'users' && <AdminUserExplorer />}
+            {adminTab === 'messages' && <AdminMessages />}
             {adminTab === 'settings' && <AdminSettings />}
+            {adminTab === 'stories' && <AdminStoryManager />}
           </div>
         )}
 
@@ -1101,9 +1120,27 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Manual Payment Modal */}
+      {manualPaymentInfo && user && (
+        <ManualPaymentModal
+          user={user}
+          amount={manualPaymentInfo.amount}
+          type={manualPaymentInfo.type}
+          contestId={manualPaymentInfo.contestId}
+          onClose={() => setManualPaymentInfo(null)}
+          onSuccess={() => {
+            setManualPaymentInfo(null);
+            fetchUserAndWallet(user.id, session);
+          }}
+        />
+      )}
+
       <footer className="mt-auto py-10 text-center border-t border-white/5 opacity-40">
         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-500">© 2025 QuizPam - Tout dwa rezève</p>
       </footer>
+
+      {/* Floating Chat */}
+      {user && <FloatingChat user={user} />}
     </div>
   );
 };
