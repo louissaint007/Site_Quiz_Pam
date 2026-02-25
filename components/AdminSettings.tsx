@@ -12,6 +12,9 @@ const AdminSettings: React.FC = () => {
     const carouselFileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingCarousel, setUploadingCarousel] = useState(false);
 
+    // For Top Players Search
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+
     // For Solo Image
     const soloFileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingSolo, setUploadingSolo] = useState(false);
@@ -291,11 +294,12 @@ const AdminSettings: React.FC = () => {
                                 className="w-full bg-slate-950 border border-slate-700 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-blue-500 transition-all pl-12"
                                 onChange={async (e) => {
                                     const val = e.target.value;
-                                    if (val.length < 2) return;
+                                    if (val.length < 2) {
+                                        setSearchResults([]);
+                                        return;
+                                    }
                                     const { data } = await supabase.from('profiles').select('id, username, avatar_url').ilike('username', `%${val}%`).limit(5);
-                                    (window as any).searchResults = data;
-                                    // Hacky way to trigger re-render for search results in a quick edit
-                                    fetchSettings();
+                                    setSearchResults(data || []);
                                 }}
                             />
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
@@ -303,9 +307,9 @@ const AdminSettings: React.FC = () => {
                             </div>
 
                             {/* Results Popover (Simplified) */}
-                            {(window as any).searchResults && (window as any).searchResults.length > 0 && (
+                            {searchResults && searchResults.length > 0 && (
                                 <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
-                                    {(window as any).searchResults.map((u: any) => (
+                                    {searchResults.map((u: any) => (
                                         <button
                                             key={u.id}
                                             onClick={async () => {
@@ -320,8 +324,7 @@ const AdminSettings: React.FC = () => {
                                                 const score = parseInt(scoreStr);
                                                 const newTop = [...currentTop, { ...u, score }];
                                                 await saveSettings({ top_players: newTop });
-                                                (window as any).searchResults = null;
-                                                fetchSettings();
+                                                setSearchResults([]);
                                             }}
                                             className="w-full p-4 flex items-center gap-4 hover:bg-slate-700 text-left transition-colors border-b border-slate-700/50 last:border-0"
                                         >
