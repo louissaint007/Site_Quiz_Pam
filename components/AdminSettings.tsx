@@ -14,6 +14,8 @@ const AdminSettings: React.FC = () => {
 
     // For Top Players Search
     const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchingPlayers, setIsSearchingPlayers] = useState(false);
 
     // For Solo Image
     const soloFileInputRef = useRef<HTMLInputElement>(null);
@@ -287,28 +289,54 @@ const AdminSettings: React.FC = () => {
 
                     <div className="space-y-6">
                         {/* Search and Add */}
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Chèche yon itilizatè pa non..."
-                                className="w-full bg-slate-950 border border-slate-700 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-blue-500 transition-all pl-12"
-                                onChange={async (e) => {
-                                    const val = e.target.value;
-                                    if (val.length < 2) {
-                                        setSearchResults([]);
-                                        return;
-                                    }
-                                    const { data } = await supabase.from('profiles').select('id, username, avatar_url').ilike('username', `%${val}%`).limit(5);
-                                    setSearchResults(data || []);
-                                }}
-                            />
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        <div className="relative flex gap-2">
+                            <div className="relative flex-1">
+                                <input
+                                    type="text"
+                                    placeholder="Chèche yon itilizatè pa non..."
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-blue-500 transition-all pl-12"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            const searchBtn = document.getElementById('search-players-btn');
+                                            if (searchBtn) searchBtn.click();
+                                        }
+                                    }}
+                                />
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                </div>
                             </div>
+                            <button
+                                id="search-players-btn"
+                                disabled={isSearchingPlayers || searchQuery.length < 2}
+                                onClick={async () => {
+                                    if (searchQuery.length < 2) return;
+                                    setIsSearchingPlayers(true);
+                                    try {
+                                        const { data, error } = await supabase.from('profiles').select('id, username, avatar_url').ilike('username', `%${searchQuery}%`).limit(10);
+                                        if (error) throw error;
+                                        setSearchResults(data || []);
+                                        if (data && data.length === 0) showNotification("Pa jwenn itilizatè a.", 'error');
+                                    } catch (err) {
+                                        console.error("Search error:", err);
+                                    } finally {
+                                        setIsSearchingPlayers(false);
+                                    }
+                                }}
+                                className="px-6 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl uppercase tracking-widest text-xs transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px]"
+                            >
+                                {isSearchingPlayers ? (
+                                    <div className="w-4 h-4 border-2 border-white rounded-full animate-spin border-t-transparent" />
+                                ) : (
+                                    "Chèche"
+                                )}
+                            </button>
 
                             {/* Results Popover (Simplified) */}
                             {searchResults && searchResults.length > 0 && (
-                                <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                <div className="absolute top-[100%] z-50 w-[calc(100%-108px)] mt-2 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
                                     {searchResults.map((u: any) => (
                                         <button
                                             key={u.id}
