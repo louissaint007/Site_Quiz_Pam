@@ -36,6 +36,10 @@ const tryPlaceWord = (word: string, grid: (string | null)[][], maxAttempts = 100
     const directions: Direction[] = ['HORIZONTAL', 'VERTICAL', 'DIAGONAL'];
     const w = word.toUpperCase();
 
+    if (w.length > GRID_SIZE) {
+        return null;
+    }
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const dir = directions[Math.floor(Math.random() * directions.length)];
         let startX = 0, startY = 0;

@@ -278,6 +278,80 @@ const AdminSettings: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Payment Numbers Section */}
+                <div className="space-y-4 pt-8 border-t border-slate-800">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                        <div>
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Nimewo Pèman Manèl</h4>
+                            <p className="text-[10px] text-slate-500 font-bold mt-1">Chanje nimewo kote jwè yo ka voye kòb la (Depo/Antre).</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* MonCash Number */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <h5 className="text-xs font-black text-red-500 uppercase tracking-widest">MonCash (Digicel)</h5>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={settings?.moncash_number || ''}
+                                    onChange={(e) => setSettings(prev => prev ? { ...prev, moncash_number: e.target.value } : null)}
+                                    placeholder="Eg: 31 23 45 67"
+                                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-red-500 transition-colors"
+                                />
+                                <button
+                                    onClick={() => saveSettings({ moncash_number: settings?.moncash_number })}
+                                    disabled={isSaving}
+                                    className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-black uppercase text-[10px] px-6 rounded-xl transition-colors"
+                                >
+                                    Sove
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* NatCash Number */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <h5 className="text-xs font-black text-blue-500 uppercase tracking-widest">NatCash (Natcom)</h5>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={settings?.natcash_number || ''}
+                                    onChange={(e) => setSettings(prev => prev ? { ...prev, natcash_number: e.target.value } : null)}
+                                    placeholder="Eg: 41 23 45 67"
+                                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-blue-500 transition-colors"
+                                />
+                                <button
+                                    onClick={() => saveSettings({ natcash_number: settings?.natcash_number })}
+                                    disabled={isSaving}
+                                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black uppercase text-[10px] px-6 rounded-xl transition-colors"
+                                >
+                                    Sove
+                                </button>
+                            </div>
+                        </div>
+                        {/* WhatsApp Number */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <h5 className="text-xs font-black text-green-500 uppercase tracking-widest">WhatsApp Admin</h5>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={settings?.whatsapp_number || ''}
+                                    onChange={(e) => setSettings(prev => prev ? { ...prev, whatsapp_number: e.target.value } : null)}
+                                    placeholder="Eg: 50930000000"
+                                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-green-500 transition-colors"
+                                />
+                                <button
+                                    onClick={() => saveSettings({ whatsapp_number: settings?.whatsapp_number })}
+                                    disabled={isSaving}
+                                    className="bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-black uppercase text-[10px] px-6 rounded-xl transition-colors"
+                                >
+                                    Sove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Top Players Section */}
                 <div className="space-y-4 pt-8 border-t border-slate-800">
                     <div className="flex justify-between items-center border-b border-slate-800 pb-4">
@@ -288,6 +362,31 @@ const AdminSettings: React.FC = () => {
                     </div>
 
                     <div className="space-y-6">
+                        {/* Weekly XP Reset */}
+                        <div className="flex justify-between items-center bg-slate-800/50 p-4 border border-red-500/20 rounded-2xl">
+                            <div>
+                                <h4 className="text-sm font-black text-white uppercase tracking-widest">Nouvo Semèn ?</h4>
+                                <p className="text-[10px] text-slate-400 mt-1">Klike isit la pou remete XP semèn nan a 0 pou tout jwè yo.</p>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    if (confirm("Èske w sèten ou vle remete XP semèn nan a 0 pou TOUT jwè yo ? Aksyon sa a pa ka defèt.")) {
+                                        try {
+                                            const { error } = await supabase.from('profiles').update({ weekly_xp: 0 }).neq('id', 'dummy');
+                                            if (error) throw error;
+                                            showNotification("Tout jwè yo koumanse a 0 XP pou semèn nan!", 'success');
+                                        } catch (err) {
+                                            console.error(err);
+                                            showNotification("Erè lè w t ap reset XP a.", 'error');
+                                        }
+                                    }
+                                }}
+                                className="px-4 py-2 bg-red-600/20 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-black uppercase text-[10px] tracking-widest transition-all"
+                            >
+                                🔄 RESET XP SEMÈN
+                            </button>
+                        </div>
+
                         {/* Search and Add */}
                         <div className="relative flex gap-2">
                             <div className="relative flex-1">
@@ -308,35 +407,62 @@ const AdminSettings: React.FC = () => {
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                 </div>
                             </div>
-                            <button
-                                id="search-players-btn"
-                                disabled={isSearchingPlayers || searchQuery.length < 2}
-                                onClick={async () => {
-                                    if (searchQuery.length < 2) return;
-                                    setIsSearchingPlayers(true);
-                                    try {
-                                        const { data, error } = await supabase.from('profiles').select('id, username, avatar_url').ilike('username', `%${searchQuery}%`).limit(10);
-                                        if (error) throw error;
-                                        setSearchResults(data || []);
-                                        if (data && data.length === 0) showNotification("Pa jwenn itilizatè a.", 'error');
-                                    } catch (err) {
-                                        console.error("Search error:", err);
-                                    } finally {
-                                        setIsSearchingPlayers(false);
-                                    }
-                                }}
-                                className="px-6 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl uppercase tracking-widest text-xs transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px]"
-                            >
-                                {isSearchingPlayers ? (
-                                    <div className="w-4 h-4 border-2 border-white rounded-full animate-spin border-t-transparent" />
-                                ) : (
-                                    "Chèche"
-                                )}
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    id="search-players-btn"
+                                    disabled={isSearchingPlayers || searchQuery.length < 2}
+                                    onClick={async () => {
+                                        if (searchQuery.length < 2) return;
+                                        setIsSearchingPlayers(true);
+                                        try {
+                                            const { data, error } = await supabase.from('profiles').select('*').ilike('username', `%${searchQuery}%`).limit(10);
+                                            if (error) throw error;
+                                            setSearchResults(data || []);
+                                            if (data && data.length === 0) showNotification("Pa jwenn itilizatè a.", 'error');
+                                        } catch (err) {
+                                            console.error("Search error:", err);
+                                        } finally {
+                                            setIsSearchingPlayers(false);
+                                        }
+                                    }}
+                                    className="px-6 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl uppercase tracking-widest text-xs transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px]"
+                                >
+                                    {isSearchingPlayers ? (
+                                        <div className="w-4 h-4 border-2 border-white rounded-full animate-spin border-t-transparent" />
+                                    ) : (
+                                        "Chèche"
+                                    )}
+                                </button>
+
+                                <button
+                                    disabled={isSearchingPlayers}
+                                    onClick={async () => {
+                                        setIsSearchingPlayers(true);
+                                        try {
+                                            // Fetch players and sort locally to avoid Supabase 400 error on XP ordering
+                                            const { data, error } = await supabase.from('profiles').select('*').limit(100);
+                                            if (error) throw error;
+
+                                            // Sort locally by XP 
+                                            const sortedData = (data || []).sort((a, b) => (b.weekly_xp || 0) - (a.weekly_xp || 0)).slice(0, 10);
+
+                                            setSearchResults(sortedData);
+                                            if (sortedData.length === 0) showNotification("Pa jwenn jwè.", 'error');
+                                        } catch (err) {
+                                            console.error("Fetch top players error:", err);
+                                        } finally {
+                                            setIsSearchingPlayers(false);
+                                        }
+                                    }}
+                                    className="px-4 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] transition-all disabled:opacity-50 flex items-center justify-center shadow-lg shadow-purple-600/30 whitespace-nowrap"
+                                >
+                                    🏆 Jwenn Top 10 (XP Semèn)
+                                </button>
+                            </div>
 
                             {/* Results Popover (Simplified) */}
                             {searchResults && searchResults.length > 0 && (
-                                <div className="absolute top-[100%] z-50 w-[calc(100%-108px)] mt-2 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                <div className="absolute top-[100%] z-50 w-[calc(100%-108px)] mt-2 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 max-h-60 overflow-y-auto custom-scrollbar">
                                     {searchResults.map((u: any) => (
                                         <button
                                             key={u.id}
@@ -347,20 +473,24 @@ const AdminSettings: React.FC = () => {
                                                     showNotification("Jwè sa a deja nan lis la!", 'error');
                                                     return;
                                                 }
-                                                const scoreStr = prompt("Antre pwen (stars) pou jwè sa a:");
-                                                if (!scoreStr) return;
-                                                const score = parseInt(scoreStr);
-                                                const newTop = [...currentTop, { ...u, score }];
+                                                // Auto-assign Weekly XP as the score instead of prompting
+                                                const score = u.weekly_xp || 0;
+                                                const finalAvatar = u.avatars_url || u.avatar_url; // Ensure flat structure
+
+                                                const newTop = [...currentTop, { id: u.id, username: u.username, avatar_url: finalAvatar, score }];
                                                 await saveSettings({ top_players: newTop });
                                                 setSearchResults([]);
                                             }}
                                             className="w-full p-4 flex items-center gap-4 hover:bg-slate-700 text-left transition-colors border-b border-slate-700/50 last:border-0"
                                         >
-                                            <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900">
-                                                <img src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-full h-full object-cover" />
+                                            <div className="w-10 h-10 shrink-0 rounded-xl overflow-hidden bg-slate-900">
+                                                <img src={u.avatars_url || u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-full h-full object-cover" />
                                             </div>
-                                            <span className="text-xs font-black text-white uppercase tracking-widest">{u.username}</span>
-                                            <span className="ml-auto text-[10px] font-bold text-blue-400 uppercase">Klike pou'w ajoute +</span>
+                                            <div className="flex flex-col min-w-0 flex-1">
+                                                <span className="text-xs font-black text-white uppercase tracking-widest truncate">{u.username}</span>
+                                                <span className="text-[10px] text-yellow-500 font-bold uppercase tracking-wider">{u.weekly_xp || 0} XP SEMÈN</span>
+                                            </div>
+                                            <span className="shrink-0 text-[10px] font-bold text-blue-400 uppercase">Klike pou'w ajoute +</span>
                                         </button>
                                     ))}
                                 </div>
@@ -373,11 +503,11 @@ const AdminSettings: React.FC = () => {
                                 settings.top_players.map((tp) => (
                                     <div key={tp.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center gap-4 group">
                                         <div className="w-12 h-12 rounded-xl border border-blue-500/30 overflow-hidden">
-                                            <img src={tp.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tp.username}`} className="w-full h-full object-cover" />
+                                            <img src={(tp as any).avatars_url || tp.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tp.username}`} className="w-full h-full object-cover" />
                                         </div>
                                         <div>
                                             <div className="text-xs font-black text-white uppercase tracking-widest">{tp.username}</div>
-                                            <div className="text-[10px] font-bold text-yellow-500 uppercase mt-1">⭐ {tp.score} Pwen</div>
+                                            <div className="text-[10px] font-bold text-yellow-500 uppercase mt-1">⚡ {tp.score} XP</div>
                                         </div>
                                         <button
                                             onClick={async () => {

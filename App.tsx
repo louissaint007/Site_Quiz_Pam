@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { UserProfile, Question, Contest, Wallet, Transaction, SoloSyncData } from './types';
 import QuizCard from './components/QuizCard';
 import GameTimer from './components/GameTimer';
@@ -118,6 +119,7 @@ const App: React.FC = () => {
           balance_htg: 0,
           level: 1,
           xp: 0,
+          weekly_xp: 0,
           honorary_title: 'Novice',
           last_level_notified: 1
         }).select().single();
@@ -194,6 +196,7 @@ const App: React.FC = () => {
 
       if (totalXpGained > 0 && user) {
         const newTotalXp = Number(user.xp || 0) + totalXpGained;
+        const newWeeklyXp = Number(user.weekly_xp || 0) + totalXpGained;
         const newLevel = calculateLevel(newTotalXp);
 
         let newTitle = user.honorary_title;
@@ -212,6 +215,7 @@ const App: React.FC = () => {
           .from('profiles')
           .update({
             xp: newTotalXp,
+            weekly_xp: newWeeklyXp,
             level: newLevel,
             honorary_title: newTitle
           })
@@ -650,100 +654,53 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-red-500/30">
-      <nav className="bg-slate-800/60 backdrop-blur-xl border-b border-white/5 p-4 sticky top-0 z-50">
+      <header className="bg-slate-800 border-b-4 border-slate-900 p-3 md:p-4 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <button onClick={() => { setView('landing'); setGameState('ready'); setIsMobileMenuOpen(false); }} className="active:scale-95 transition-transform">
-            <span className="text-2xl md:text-3xl font-black tracking-tighter flex items-center">
+          <button onClick={() => { setView('landing'); setGameState('ready'); }} className="active:scale-95 transition-transform">
+            <span className="text-2xl md:text-3xl font-black tracking-tighter flex items-center drop-shadow-md">
               <span className="text-red-500 italic">Quiz</span><span className="text-white">Pam</span>
             </span>
           </button>
 
-          <div className="flex items-center space-x-3 md:space-x-6">
+          <div className="flex items-center space-x-2 md:space-x-4">
             {hasPendingSync && (
-              <button onClick={syncPending} disabled={isSyncing} className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1.5 rounded-xl text-[8px] md:text-[9px] font-black text-yellow-500 uppercase animate-pulse">
-                <span>{isSyncing ? '🔄 Sync...' : '🔄 Offline'}</span>
+              <button onClick={syncPending} disabled={isSyncing} className="bg-yellow-500 text-slate-900 px-3 py-1.5 rounded-full text-[10px] font-black uppercase animate-bounce shadow-lg">
+                {isSyncing ? '🔄 Sync...' : '⚠️ Offline'}
               </button>
             )}
 
-            {session && user && (
-              <button onClick={() => setView('profile')} className="flex items-center space-x-2 md:space-x-3 group bg-slate-900/40 p-1 pr-3 md:p-1 md:pr-4 rounded-2xl border border-white/5 hover:border-blue-500/50 transition-all relative overflow-hidden">
-                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl overflow-hidden avatar-frame ${getPrestigeStyle(user.level || 1).frameClass}`}>
-                  <img src={user.avatars_url || user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="Profile" className="w-full h-full object-cover rounded-lg" />
-                </div>
-                <div className="text-right">
-                  <p className={`hidden xs:block text-[8px] md:text-[10px] font-black uppercase tracking-widest leading-none ${getPrestigeStyle(user.level || 1).textClass}`}>
-                    {user.username} {getPrestigeStyle(user.level || 1).icon}
-                  </p>
-                  <p className="text-yellow-400 font-black text-xs md:text-sm">{(user?.balance_htg || 0).toLocaleString()} <span className="text-[10px]">HTG</span></p>
-                </div>
-              </button>
-            )}
-
-            {session && user && (
-              <div className="hidden md:flex items-center space-x-4">
-                <button onClick={() => setView('my-contests')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Konkou Mwen</button>
-                <button onClick={() => setView('reviews')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Avis</button>
-                {user.is_admin && (
-                  <button onClick={() => setView('admin')} className="text-[10px] font-black uppercase tracking-widest bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl transition-colors">Admin</button>
-                )}
-                <button onClick={handleLogout} className="text-slate-500 hover:text-red-500 transition-colors p-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            {session && user ? (
+              <div className="flex items-center gap-2 bg-slate-900/80 pr-3 md:pr-4 rounded-[2rem] border-2 border-slate-700 shadow-inner">
+                <button onClick={() => setView('profile')} className="active:scale-95 transition-transform flex items-center">
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden avatar-frame ${getPrestigeStyle(user.level || 1).frameClass}`}>
+                    <img src={user.avatars_url || user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                  </div>
                 </button>
+                <div className="flex flex-col justify-center ml-1">
+                  <p className="text-yellow-400 font-black text-sm md:text-base leading-none drop-shadow-sm flex items-center gap-1">
+                    {(user?.balance_htg || 0).toLocaleString()} <span className="text-[10px] text-white/70 uppercase">HTG</span>
+                  </p>
+                  <p className={`hidden xs:block text-[8px] md:text-[10px] font-black uppercase tracking-widest leading-none mt-1 ${getPrestigeStyle(user.level || 1).textClass}`}>
+                    {user.username.substring(0, 8)} Lvl {user.level}
+                  </p>
+                </div>
               </div>
-            )}
+            ) : (!session && (
+              <button onClick={() => setView('auth')} className="btn-bouncy btn-bouncy-primary px-6 py-2 rounded-2xl font-black uppercase tracking-widest text-xs">
+                Koneksyon
+              </button>
+            ))}
 
-            {session && !user && (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></div>
-                <button onClick={handleLogout} className="text-[10px] font-black uppercase text-red-500 hover:text-red-400">Dekonekte</button>
-              </div>
-            )}
-
-            {!session && (
-              <div className="hidden md:flex items-center space-x-4">
-                <button onClick={() => setView('my-contests')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Konkou Mwen</button>
-                <button onClick={() => setView('reviews')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Avis</button>
-                <button onClick={() => setView('auth')} className="text-[10px] font-black uppercase tracking-widest bg-blue-600 px-6 py-2.5 rounded-xl shadow-lg hover:bg-blue-500 transition-all">Koneksyon</button>
-              </div>
-            )}
-
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2 text-white bg-slate-800 rounded-xl">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[60] bg-slate-900 md:hidden flex flex-col p-8 animate-in slide-in-from-right duration-300">
-          <div className="flex justify-between items-center mb-12">
-            <span className="text-2xl font-black italic"><span className="text-red-500">Quiz</span>Pam</span>
-            <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-slate-800 rounded-xl">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
-          </div>
-          <div className="space-y-4 flex-1 overflow-y-auto">
-            <button onClick={() => { setView('landing'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Landing <span>🌐</span></button>
-            <button onClick={() => { setView('home'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Lobby <span>🏠</span></button>
-            <button onClick={() => { setView('my-contests'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Konkou Mwen <span>🏆</span></button>
-            <button onClick={() => { setView('reviews'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Avis Kliyan <span>💬</span></button>
-            {user && (
-              <>
-                <button onClick={() => { setView('profile'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Profil & Depo <span>💰</span></button>
-                {user.is_admin && <button onClick={() => { setView('admin'); setIsMobileMenuOpen(false); }} className="w-full text-left p-6 bg-slate-800 rounded-3xl font-black uppercase tracking-widest text-sm flex items-center justify-between">Admin <span>🛡️</span></button>}
-              </>
-            )}
-          </div>
-          <div className="pt-8 border-t border-white/5 mt-auto">
-            {user ? (
-              <button onClick={handleLogout} className="w-full py-5 bg-red-500/10 text-red-500 font-black rounded-3xl uppercase tracking-widest text-xs border border-red-500/20">Dekonekte</button>
-            ) : (
-              <button onClick={() => { setView('auth'); setIsMobileMenuOpen(false); }} className="w-full py-5 bg-blue-600 text-white font-black rounded-3xl uppercase tracking-widest text-xs">Koneksyon</button>
+            {session && user?.is_admin && (
+              <button onClick={() => setView('admin')} className="text-[10px] font-black uppercase tracking-widest bg-fuchsia-600 shadow-[0_4px_0_#86198f] active:shadow-none active:translate-y-1 text-white px-4 py-2 rounded-xl transition-all ml-2 hidden sm:block border border-white/20">
+                Admin
+              </button>
             )}
           </div>
         </div>
-      )}
+      </header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 flex flex-col min-h-[calc(100vh-100px)]">
+      <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 flex flex-col min-h-[calc(100vh-100px)] pb-28 md:pb-8">
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl mb-6 font-bold text-center uppercase text-xs">{error}</div>}
 
         {view === 'landing' && (
@@ -781,14 +738,14 @@ const App: React.FC = () => {
                         {siteSettings?.top_players && siteSettings.top_players.length > 0 ? (
                           siteSettings.top_players.map((tp: any, i: number) => (
                             <div key={tp.id} className="flex items-center gap-4 bg-slate-800/50 p-3 rounded-2xl border border-white/5 animate-in slide-in-from-right duration-500" style={{ animationDelay: `${i * 100}ms` }}>
-                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-700 border border-white/10">
-                                <img src={tp.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tp.username}`} className="w-full h-full object-cover" />
+                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-700 border border-white/10 shrink-0">
+                                <img src={tp.avatar_url || tp.avatars_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tp.username}`} className="w-full h-full object-cover" />
                               </div>
-                              <div className="flex-1">
-                                <p className="text-[10px] font-black uppercase text-white tracking-widest leading-none">{tp.username}</p>
-                                <p className="text-[9px] font-bold text-yellow-500 uppercase mt-1">⭐ {tp.score} Pwen</p>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-black uppercase text-white tracking-widest leading-none truncate">{tp.username}</p>
+                                <p className="text-[9px] font-bold text-yellow-500 uppercase mt-1 truncate">⚡ {tp.score} XP</p>
                               </div>
-                              <div className="text-[10px] font-black text-slate-500 italic">#{i + 1}</div>
+                              <div className="text-[10px] shrink-0 font-black text-slate-500 italic">#{i + 1}</div>
                             </div>
                           ))
                         ) : (
@@ -924,35 +881,46 @@ const App: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div
-                className={`bg-slate-800/40 rounded-[2.5rem] border-2 border-dashed border-slate-700 p-8 flex flex-col justify-between group hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] cursor-pointer transition-all relative overflow-hidden`}
+                className={`bg-slate-800/80 rounded-[2.5rem] border-2 border-slate-700 p-8 flex flex-col justify-between group hover:border-blue-500/50 shadow-lg cursor-pointer transition-all relative overflow-hidden`}
                 onClick={() => startGame('solo')}
               >
                 {siteSettings?.solo_game_image_url && (
                   <div className="absolute inset-0 z-0">
-                    <img src={siteSettings.solo_game_image_url} alt="Solo Cover" className="w-full h-full object-cover opacity-30 mix-blend-screen group-hover:scale-110 group-hover:opacity-50 transition-all duration-700" />
+                    <img src={siteSettings.solo_game_image_url} alt="Solo Cover" className="w-full h-full object-cover opacity-30 mix-blend-screen group-hover:scale-105 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"></div>
                   </div>
                 )}
                 <div className="space-y-4 relative z-10">
-                  <div className="w-16 h-16 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all">🕹️</div>
+                  <div className="w-16 h-16 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-2xl flex items-center justify-center text-3xl shadow-inner">🕹️</div>
                   <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Pratik Solo</h3>
-                  <p className="text-slate-400 text-sm">Chaje yon pack 10 kesyon nèf epi jwe menm si w pa gen entènèt.</p>
+                  <p className="text-slate-400 text-sm font-semibold">Chaje yon pack 10 kesyon nèf epi jwe menm si w pa gen entènèt.</p>
                 </div>
-                <button className="relative z-10 mt-8 w-full py-4 bg-slate-700 group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-indigo-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-xl group-hover:shadow-blue-600/30">KÒMANSE SOLO</button>
+                <div className="relative z-10 mt-8">
+                  <button className="w-full btn-bouncy btn-bouncy-primary py-4 rounded-2xl font-black uppercase tracking-widest text-sm">
+                    KÒMANSE SOLO
+                  </button>
+                </div>
               </div>
 
               {/* MO KWAZE DINAMIK CARD */}
               <div
-                className="bg-slate-800/40 rounded-[2.5rem] border-2 border-dashed border-amber-500/50 p-8 flex flex-col justify-between group hover:border-amber-500 hover:shadow-[0_0_30px_rgba(245,158,11,0.3)] cursor-pointer transition-all relative overflow-hidden"
+                className="bg-gradient-to-br from-amber-600/20 to-orange-800/20 rounded-[2.5rem] border-2 border-amber-500/30 p-8 flex flex-col justify-between group shadow-lg cursor-pointer relative overflow-hidden"
                 onClick={() => setView('mokwaze')}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwYXRoIGQ9Ik0wLDBMODw4TTAsOEw4LDBaIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvc3ZnPg==')] opacity-50"></div>
                 <div className="space-y-4 relative z-10">
-                  <div className="w-16 h-16 bg-amber-500/20 text-amber-500 border border-amber-500/30 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 shadow-lg transition-all animate-bounce">⏱️</div>
+                  <div className="w-16 h-16 bg-amber-500/20 text-amber-500 border border-amber-500/50 rounded-2xl flex items-center justify-center text-3xl shadow-inner animate-pulse">⏱️</div>
                   <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Mo Kwaze Dinamik</h3>
-                  <p className="text-slate-400 text-sm">Chèche mo yo rapid anvan 60 segonn fini. Tout lèt yo ap chanje plas siw pèdi tan!</p>
+                  <p className="text-amber-200/80 text-sm font-semibold">Chèche mo yo rapid anvan revèy la fini. Lèt yo ap chanje plas tanzantan!</p>
                 </div>
-                <button className="relative z-10 mt-8 w-full py-4 bg-amber-600 group-hover:bg-gradient-to-r group-hover:from-amber-500 group-hover:to-orange-500 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-xl group-hover:shadow-amber-500/50">JWE KOUNYEA</button>
+                <div className="relative z-10 mt-8">
+                  <button
+                    className="w-full btn-bouncy py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-white"
+                    style={{ backgroundColor: '#f59e0b', boxShadow: '0 6px 0 #b45309, 0 8px 10px rgba(0,0,0,0.2)' }}
+                  >
+                    JWE KOUNYEA
+                  </button>
+                </div>
               </div>
 
               {contests.map(c => {
@@ -990,18 +958,23 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="p-6 space-y-4 flex-1 flex flex-col justify-end">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-yellow-400 font-black text-lg drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]">{(c.entry_fee || 0)} HTG</span>
-                        <div className="flex items-center gap-2 bg-gradient-to-r from-slate-900 to-slate-800 p-2 pl-3 rounded-2xl border border-white/10 shadow-inner">
-                          <span className="text-green-400 font-black text-[10px] drop-shadow-md">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-yellow-400 font-black text-xl drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]">{(c.entry_fee || 0)} HTG</span>
+                        <div className="flex items-center gap-2 bg-slate-900/80 p-2 pl-3 rounded-2xl border border-white/10 shadow-inner">
+                          <span className="text-green-400 font-black text-xs drop-shadow-md">
                             {isObjectPrize ? c.prize_description : `${c.grand_prize} HTG`}
                           </span>
                           {isObjectPrize && c.prize_image_url && (
-                            <img src={c.prize_image_url} onClick={(e) => { e.stopPropagation(); setSelectedPrizeImage(c.prize_image_url!); }} className="w-8 h-8 rounded-lg object-cover cursor-zoom-in border border-white/10 transition-transform hover:scale-110" />
+                            <img src={c.prize_image_url} onClick={(e) => { e.stopPropagation(); setSelectedPrizeImage(c.prize_image_url!); }} className="w-8 h-8 rounded-lg object-cover cursor-zoom-in border border-white/10" />
                           )}
                         </div>
                       </div>
-                      <button onClick={() => { setSelectedContest(c); setView('contest-detail'); }} className="w-full py-4 bg-slate-700 group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-indigo-600 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest transition-all shadow-lg active:scale-95 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]">Patisipe</button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedContest(c); setView('contest-detail'); }}
+                        className="w-full btn-bouncy btn-bouncy-success py-4 rounded-2xl font-black uppercase tracking-widest text-sm"
+                      >
+                        Patisipe
+                      </button>
                     </div>
                   </div>
                 );
@@ -1052,8 +1025,11 @@ const App: React.FC = () => {
                 <p className="text-slate-400 font-bold uppercase tracking-[0.4em]">Tan Total: {(totalTimeMs / 1000).toFixed(2)}s</p>
                 <p className="text-[10px] text-slate-500">Règ: Score segon nan egalitarian se Tan ki depataje.</p>
               </div>
-              <div className="pt-8">
-                <button onClick={() => { setView('home'); setGameState('ready'); }} className="bg-blue-600 text-white px-16 py-5 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-xl active:translate-y-2 transition-all hover:bg-blue-500">Tounen Lobby</button>
+              <div className="pt-8 flex flex-col md:flex-row gap-4 justify-center items-center">
+                <button onClick={() => { setView('home'); setGameState('ready'); }} className="bg-slate-700 text-white px-10 py-5 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-xl active:translate-y-2 transition-all hover:bg-slate-600">Tounen Lobby</button>
+                {view === 'solo' && (
+                  <button onClick={() => startGame('solo')} className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-10 py-5 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/30 active:translate-y-2 transition-all hover:scale-105">Rejwe Solo</button>
+                )}
               </div>
             </div>
             {/* Solo Game Result Ad */}
@@ -1135,9 +1111,69 @@ const App: React.FC = () => {
         />
       )}
 
-      <footer className="mt-auto py-10 text-center border-t border-white/5 opacity-40">
+      <footer className="mt-auto py-6 mb-20 md:mb-0 text-center opacity-40">
         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-500">© 2025 QuizPam - Tout dwa rezève</p>
       </footer>
+
+      {/* MOBILE BOTTOM NAVIGATION BAR */}
+      <div className="fixed bottom-0 left-0 w-full bg-slate-800 border-t border-slate-700 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-50 rounded-t-3xl md:px-8">
+        <div className="flex justify-around items-center h-20 px-2 max-w-xl mx-auto">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setView('home')}
+            className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${view === 'home' || view === 'landing' ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <svg className={`w-6 h-6 mb-1 transition-transform ${view === 'home' || view === 'landing' ? 'drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]' : ''}`} fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+            <span className="text-[9px] font-black uppercase tracking-wider">Lobby</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setView('my-contests')}
+            className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${view === 'my-contests' ? 'text-yellow-400' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <svg className={`w-6 h-6 mb-1 transition-transform ${view === 'my-contests' ? 'drop-shadow-[0_0_10px_rgba(250,204,21,0.6)]' : ''}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.58l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1zm-5.187 9.619l-1.065-3.325L8.52 6.37l-3.707 1.92z" clipRule="evenodd" /></svg>
+            <span className="text-[9px] font-black uppercase tracking-wider">Konkou</span>
+          </motion.button>
+
+          {/* Center Play/Action Button (Optional prominent button) */}
+          <div className="relative -top-6">
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: [-5, 5, -5, 5, 0] }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setView('mokwaze')}
+              className="w-16 h-16 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-3xl shadow-[0_5px_15px_rgba(245,158,11,0.5)] border-4 border-slate-900 active:scale-90 transition-transform"
+            >
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+            </motion.button>
+          </div>
+
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setView('reviews')}
+            className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${view === 'reviews' ? 'text-green-400' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <svg className={`w-6 h-6 mb-1 transition-transform ${view === 'reviews' ? 'drop-shadow-[0_0_10px_rgba(74,222,128,0.6)]' : ''}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg>
+            <span className="text-[9px] font-black uppercase tracking-wider">Avis</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => {
+              if (!user) { setView('auth'); return; }
+              setView('profile');
+            }}
+            className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${view === 'profile' || view === 'auth' ? 'text-fuchsia-400' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <svg className={`w-6 h-6 mb-1 transition-transform ${view === 'profile' ? 'drop-shadow-[0_0_10px_rgba(232,121,249,0.6)]' : ''}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
+            <span className="text-[9px] font-black uppercase tracking-wider">{user ? 'Profil' : 'Konekte'}</span>
+          </motion.button>
+        </div>
+      </div>
 
       {/* Floating Chat */}
       {user && <FloatingChat user={user} />}

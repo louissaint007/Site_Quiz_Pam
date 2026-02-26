@@ -21,10 +21,61 @@
     crossorigin="anonymous"></script>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Nunito', sans-serif;
+    }
+
+    /* Bouncy 3D Button Style for Mobile Game Feeling (Cartoon Style) */
+    .btn-bouncy {
+      border: 4px solid #1e293b;
+      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 6px 0 #1e293b;
+    }
+
+    .btn-bouncy:focus,
+    .btn-bouncy:hover {
+      outline: none;
+    }
+
+    .btn-bouncy:active {
+      transform: translateY(6px);
+      box-shadow: 0 0px 0 #1e293b;
+    }
+
+    /* Specific Bouncy Button Colors */
+    .btn-bouncy-primary {
+      background-color: #4f46e5;
+      color: white;
+      border: 4px solid #312e81;
+      box-shadow: 0 6px 0 #312e81;
+    }
+
+    .btn-bouncy-primary:active {
+      box-shadow: 0 0px 0 #312e81;
+    }
+
+    .btn-bouncy-success {
+      background-color: #22c55e;
+      color: white;
+      border: 4px solid #14532d;
+      box-shadow: 0 6px 0 #14532d;
+    }
+
+    .btn-bouncy-success:active {
+      box-shadow: 0 0px 0 #14532d;
+    }
+
+    .btn-bouncy-danger {
+      background-color: #ef4444;
+      /* red-500 */
+      color: white;
+      box-shadow: 0 6px 0 #991b1b, 0 8px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-bouncy-danger:active {
+      box-shadow: 0 0px 0 #991b1b, 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 
     /* Prestige Styles */

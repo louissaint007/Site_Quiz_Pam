@@ -15,11 +15,16 @@ export const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ user, am
     const [phoneNumber, setPhoneNumber] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [paymentInfo, setPaymentInfo] = useState<UserPaymentInfo | null>(null);
+    const [settings, setSettings] = useState<{ moncash_number?: string; natcash_number?: string; whatsapp_number?: string } | null>(null);
     const [isLoadingInfo, setIsLoadingInfo] = useState(true);
 
     useEffect(() => {
         const fetchPaymentInfo = async () => {
             try {
+                // Fetch settings for dynamic numbers
+                const { data: settingsData } = await supabase.from('site_settings').select('moncash_number, natcash_number, whatsapp_number').eq('id', 1).maybeSingle();
+                if (settingsData) setSettings(settingsData);
+
                 const { data, error } = await supabase
                     .from('user_payment_info')
                     .select('*')
@@ -109,11 +114,11 @@ export const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ user, am
                 <div className="flex flex-col gap-3">
                     <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl flex items-center justify-between">
                         <span className="text-white font-black">MonCash (Digicel)</span>
-                        <span className="text-red-400 font-bold tracking-wider text-xl">31 23 45 67</span>
+                        <span className="text-red-400 font-bold tracking-wider text-xl">{settings?.moncash_number || '31 23 45 67'}</span>
                     </div>
                     <div className="bg-blue-500/10 border border-blue-500/30 p-3 rounded-xl flex items-center justify-between">
                         <span className="text-white font-black">NatCash (Natcom)</span>
-                        <span className="text-blue-400 font-bold tracking-wider text-xl">41 23 45 67</span>
+                        <span className="text-blue-400 font-bold tracking-wider text-xl">{settings?.natcash_number || '41 23 45 67'}</span>
                     </div>
                 </div>
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center mt-2">
@@ -177,7 +182,7 @@ export const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ user, am
                     {paymentInfo && getInstructions()}
 
                     <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                        <a href="https://wa.me/50930000000" target="_blank" rel="noopener noreferrer" className="text-green-500 hover:text-green-400 font-bold flex items-center gap-2 text-sm transition-colors">
+                        <a href={settings?.whatsapp_number ? `https://wa.me/${settings.whatsapp_number.replace(/\D/g, '')}` : "https://wa.me/50930000000"} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:text-green-400 font-bold flex items-center gap-2 text-sm transition-colors">
                             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.441-1.273.606-1.446c.164-.173.355-.217.473-.217l.336.006c.106.005.25-.044.39.298.144.351.491 1.205.534 1.291.043.086.072.186.014.303-.058.116-.086.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.373-.043c.099-.115.429-.504.545-.677.116-.173.232-.144.391-.086.155.058.984.464 1.152.549.168.086.28.129.32.201.041.072.041.42-.103.825zm-3.391-9.416c-3.834 0-6.953 3.12-6.953 6.954 0 1.226.321 2.421.928 3.473l-1.002 3.664 3.754-.984c1.01.549 2.158.839 3.332.839 3.835 0 6.954-3.12 6.954-6.954 0-3.833-3.119-6.953-6.953-6.954z" />
                             </svg>

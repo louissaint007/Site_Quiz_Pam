@@ -7,6 +7,7 @@ export interface UserProfile {
   solo_level: number;
   level: number;
   xp: number;
+  weekly_xp?: number;
   honorary_title: string;
   total_wins?: number;
   last_level_notified: number;
@@ -150,6 +151,9 @@ export interface SiteSettings {
   carousel_images: string[];
   solo_game_image_url: string | null;
   top_players?: { id: string, username: string, avatar_url: string | null, score: number }[];
+  moncash_number?: string;
+  natcash_number?: string;
+  whatsapp_number?: string;
   updated_at: string;
 }
 

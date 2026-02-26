@@ -76,3 +76,19 @@ create policy "Users can update their own profile"
   on public.profiles for update
   using ( auth.uid() = id )
   with check ( auth.uid() = id );
+
+
+-- Add weekly_xp column to profiles to track top players per week
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS weekly_xp int4 DEFAULT 0;
+
+
+
+-- Add configurable payment numbers to site_settings
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS moncash_number text DEFAULT '31 23 45 67';
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS natcash_number text DEFAULT '41 23 45 67';
+
+
+
+-- Add configurable whatsapp number to site_settings
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS whatsapp_number text DEFAULT '50930000000';
+

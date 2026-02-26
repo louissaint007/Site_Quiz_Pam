@@ -289,10 +289,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, wallet, transactions, o
             <div className="relative z-10 space-y-8">
               <div>
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Solde Disponib</p>
-                <h3 className="text-5xl md:text-6xl font-black text-white tracking-tighter italic">
-                  {(user.balance_htg || 0).toLocaleString().split('.')[0]}
-                  <span className="text-2xl text-slate-500 not-italic ml-2 uppercase tracking-widest font-bold">HTG</span>
-                </h3>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-5xl md:text-6xl font-black text-white tracking-tighter italic">
+                    {(user.balance_htg || 0).toLocaleString().split('.')[0]}
+                  </h3>
+                  <span className="text-2xl text-yellow-400 font-black uppercase tracking-widest bg-yellow-400/10 px-3 py-1 rounded-xl border border-yellow-400/20">HTG</span>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">

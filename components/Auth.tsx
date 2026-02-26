@@ -67,14 +67,25 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
   };
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="bg-slate-800 p-8 md:p-12 rounded-[3rem] shadow-2xl w-full max-w-md border border-slate-700 animate-in zoom-in duration-300">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 relative overflow-hidden">
+
+      {/* Decorative background elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div className="absolute top-[20%] right-[-10%] w-64 h-64 bg-fuchsia-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-[-10%] left-[20%] w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <div className="bg-slate-800/80 backdrop-blur-xl p-8 md:p-12 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-white/10 relative z-10 animate-in zoom-in duration-500">
         <div className="text-center mb-10">
-          <h2 className="text-4xl font-black tracking-tighter text-white">
-            <span className="text-red-500 italic">Quiz</span>Pam
+          <div className="inline-block p-4 bg-slate-900/50 rounded-3xl mb-4 shadow-inner ring-1 ring-white/10">
+            <span className="text-6xl block transform hover:scale-110 transition-transform duration-300">🎮</span>
+          </div>
+          <h2 className="text-5xl font-black tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+            <span className="text-red-500">Quiz</span>Pam
           </h2>
-          <p className="text-slate-400 mt-2 font-bold uppercase text-[10px] tracking-widest">
-            {isLogin ? 'Byenvini ankò !' : 'Kreye kont ou an.'}
+          <p className="text-slate-300 mt-3 font-bold uppercase text-[11px] tracking-widest bg-slate-900/50 py-1 px-3 rounded-full inline-block">
+            {isLogin ? 'Byenvini ankò !' : 'Kreye kont ou an'}
           </p>
         </div>
 
@@ -138,13 +149,15 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-3xl shadow-[0_6px_0_rgb(29,78,216)] transition-all active:translate-y-1 active:shadow-none disabled:opacity-50 mt-4 uppercase tracking-widest text-xs"
-          >
-            {loading ? 'YAP CHACHE...' : isLogin ? 'Konekte m' : "Enskri m"}
-          </button>
+          <div className="pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full btn-bouncy btn-bouncy-primary py-4 rounded-2xl font-black uppercase tracking-widest text-lg disabled:opacity-50 disabled:transform-none disabled:box-shadow-none"
+            >
+              {loading ? 'YAP CHACHE...' : isLogin ? 'KONEKTE M' : "ENSKRI M"}
+            </button>
+          </div>
         </form>
 
         <div className="text-center mt-8">

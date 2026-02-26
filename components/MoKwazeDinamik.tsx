@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase';
 import { GameStory } from '../types';
 
 const GAME_DURATION = 120; // 120 seconds
-const SHUFFLE_INTERVAL = 15; // Every 15 seconds
+const SHUFFLE_INTERVAL = 30; // Every 30 seconds
 
 interface Props {
     onExit: () => void;
@@ -24,6 +24,12 @@ export const MoKwazeDinamik: React.FC<Props> = ({ onExit }) => {
     const [gamePhase, setGamePhase] = useState<'loading' | 'reading' | 'playing' | 'won' | 'lost'>('loading');
     const [showConfetti, setShowConfetti] = useState(false);
     const [showAdMobTrigger, setShowAdMobTrigger] = useState(false);
+    const [completedStories, setCompletedStories] = useState(0);
+    const [isShuffling, setIsShuffling] = useState(false);
+
+    useEffect(() => {
+        setCompletedStories(parseInt(localStorage.getItem('mokwaze_progress') || '0', 10));
+    }, [gamePhase]);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const lastShuffleTimeRef = useRef<number>(GAME_DURATION);
@@ -35,24 +41,26 @@ export const MoKwazeDinamik: React.FC<Props> = ({ onExit }) => {
 
     const fetchRandomStory = async () => {
         setGamePhase('loading');
+
+        // Check if there is an unfinished story
+        const savedStoryId = localStorage.getItem('mokwaze_current_story');
+
+        if (savedStoryId) {
+            const { data, error } = await supabase.from('game_stories').select('*').eq('id', savedStoryId).single();
+            if (data && !error) {
+                setupStoryGame(data);
+                return;
+            }
+        }
+
+        // Fetch all stories and pick a random one if no saved story or saved story fetch failed
         const { data, error } = await supabase.from('game_stories').select('*');
         if (data && data.length > 0) {
-            // Pick a random story
             const randomStory = data[Math.floor(Math.random() * data.length)];
-            setStory(randomStory);
-            // Select up to 10 words randomly from target_words
-            const shuffledWords = [...randomStory.target_words].sort(() => 0.5 - Math.random());
-            const selectedWords = shuffledWords.slice(0, 10);
-
-            // If the story has no target words, we can't play
-            if (selectedWords.length === 0) {
-                setWordsToFind(["QUIZPAM", "AYITI"]); // Fallback
-            } else {
-                setWordsToFind(selectedWords);
-            }
-            setGamePhase('reading');
+            localStorage.setItem('mokwaze_current_story', randomStory.id);
+            setupStoryGame(randomStory);
         } else {
-            // Fallback mock mode if no stories
+            // Fallback mock mode
             const mockStory: GameStory = {
                 id: 'mock',
                 title: "Istwa Kouraj Ayisyen",
@@ -63,16 +71,28 @@ export const MoKwazeDinamik: React.FC<Props> = ({ onExit }) => {
                 created_at: "",
                 updated_at: ""
             };
-            setStory(mockStory);
-            setWordsToFind(mockStory.target_words);
-            setGamePhase('reading');
+            localStorage.setItem('mokwaze_current_story', mockStory.id);
+            setupStoryGame(mockStory);
         }
+    };
+
+    const setupStoryGame = (storyData: GameStory) => {
+        setStory(storyData);
+        const shuffledWords = [...storyData.target_words].sort(() => 0.5 - Math.random());
+        const selectedWords = shuffledWords.slice(0, 10);
+        if (selectedWords.length === 0) {
+            setWordsToFind(["QUIZPAM", "AYITI"]);
+        } else {
+            setWordsToFind(selectedWords);
+        }
+        setGamePhase('reading');
     };
 
     const startGame = () => {
         setGrid(generateInitialGrid(wordsToFind));
         setGamePhase('playing');
         setTimeLeft(GAME_DURATION);
+        setIsShuffling(false);
         lastShuffleTimeRef.current = GAME_DURATION;
         startTimer();
     };
@@ -105,7 +125,7 @@ export const MoKwazeDinamik: React.FC<Props> = ({ onExit }) => {
             }
         }
 
-        // Check Shuffle interval (Every 15s)
+        // Check Shuffle interval (Every 30s)
         if (gamePhase === 'playing' && timeLeft > 0 && timeLeft < GAME_DURATION) {
             if (lastShuffleTimeRef.current - timeLeft >= SHUFFLE_INTERVAL) {
                 triggerShuffle();
@@ -114,13 +134,17 @@ export const MoKwazeDinamik: React.FC<Props> = ({ onExit }) => {
     }, [timeLeft, gamePhase]);
 
     const triggerShuffle = () => {
-        if (gamePhase !== 'playing') return;
+        if (gamePhase !== 'playing' || isShuffling) return;
         lastShuffleTimeRef.current = timeLeft;
-        setGrid(prev => shuffleGrid(prev, wordsToFind.filter(w => !foundWords.includes(w))));
+        setIsShuffling(true);
+        setTimeout(() => {
+            setGrid(prev => shuffleGrid(prev, wordsToFind.filter(w => !foundWords.includes(w))));
+            setIsShuffling(false);
+        }, 1500); // Wait 1.5s for the running animation before resetting grid
     };
 
     const handleWordFound = (word: string) => {
-        if (gamePhase !== 'playing' || foundWords.includes(word)) return;
+        if (gamePhase !== 'playing' || foundWords.includes(word) || isShuffling) return;
 
         // Haptic Feedback
         if (navigator.vibrate) {
@@ -135,11 +159,10 @@ export const MoKwazeDinamik: React.FC<Props> = ({ onExit }) => {
             setShowConfetti(true);
             stopTimer();
             setGamePhase('won');
-        } else {
-            // Delay shuffle to let the visual effect play
-            setTimeout(() => {
-                triggerShuffle();
-            }, 600);
+            const currentProgress = parseInt(localStorage.getItem('mokwaze_progress') || '0', 10);
+            localStorage.setItem('mokwaze_progress', (currentProgress + 1).toString());
+            // Clear current story so a new one is selected next time
+            localStorage.removeItem('mokwaze_current_story');
         }
     };
 
@@ -219,6 +242,7 @@ export const MoKwazeDinamik: React.FC<Props> = ({ onExit }) => {
                                     foundWords={foundWords}
                                     onWordFound={handleWordFound}
                                     category={story?.category || 'Histoire'}
+                                    isShuffling={isShuffling}
                                 />
                             </div>
                         </motion.div>
@@ -249,20 +273,40 @@ export const MoKwazeDinamik: React.FC<Props> = ({ onExit }) => {
                     )}
 
                     {gamePhase === 'won' && (
-                        <motion.div key="win" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center bg-slate-800 rounded-3xl p-8 m-auto">
+                        <motion.div key="win" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center bg-slate-800 rounded-3xl p-8 m-auto w-full max-w-sm">
                             <span className="text-8xl block mb-6">🏆</span>
                             <h2 className="text-4xl font-black text-white tracking-widest uppercase mb-4 text-shadow-lg shadow-green-500/50">Viktwa !</h2>
-                            <p className="text-green-400 font-bold mb-8">Ou jwenn tout mo yo ak {timeLeft}s ki rete !</p>
-                            <button onClick={onExit} className="bg-white text-slate-900 px-8 py-3 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition">Kontinye</button>
+                            <p className="text-green-400 font-bold mb-4">Ou jwenn tout mo yo ak {timeLeft}s ki rete !</p>
+
+                            {/* Roadmap / Progress */}
+                            <div className="bg-slate-900/50 rounded-2xl p-4 mb-8 border border-white/5">
+                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Wout Ou (Roadmap)</p>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">🗺️</span>
+                                    <div className="flex-1 bg-slate-800 h-3 rounded-full overflow-hidden">
+                                        <div className="bg-gradient-to-r from-green-500 to-emerald-400 h-full rounded-full w-full"></div>
+                                    </div>
+                                    <span className="text-white font-black">{completedStories} Istwa</span>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                <button onClick={() => { setShowConfetti(false); setFoundWords([]); fetchRandomStory(); }} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition shadow-lg shadow-blue-500/30">Refè yon Pati</button>
+                                <button onClick={onExit} className="w-full bg-slate-700 text-slate-300 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-600 transition">Tounen Menu</button>
+                            </div>
                         </motion.div>
                     )}
 
                     {gamePhase === 'lost' && (
-                        <motion.div key="lose" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center bg-slate-800 rounded-3xl p-8 m-auto">
+                        <motion.div key="lose" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center bg-slate-800 rounded-3xl p-8 m-auto w-full max-w-sm">
                             <span className="text-8xl block mb-6">⏰</span>
                             <h2 className="text-4xl font-black text-red-500 tracking-widest uppercase mb-4 text-shadow-lg shadow-red-500/50">Tan Fini</h2>
                             <p className="text-slate-300 font-bold mb-8">Ou pat gentan jwenn tout mo yo.</p>
-                            <button onClick={onExit} className="bg-red-500 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition">Tounen</button>
+
+                            <div className="flex flex-col gap-3">
+                                <button onClick={() => { setFoundWords([]); fetchRandomStory(); }} className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition shadow-lg shadow-red-500/30">Refè yon Pati</button>
+                                <button onClick={onExit} className="w-full bg-slate-700 text-slate-300 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-600 transition">Tounen Menu</button>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>

@@ -188,15 +188,15 @@ const ContestDetailView: React.FC<ContestDetailViewProps> = ({ contest, userBala
             <button
               onClick={() => isJoined ? (onGoToMyContests && onGoToMyContests()) : onJoin(contest.id)}
               disabled={!isJoined && !canAfford}
-              className={`w-full py-6 rounded-[2rem] font-black uppercase text-xs tracking-widest transition-all shadow-xl flex flex-col items-center justify-center gap-1 ${isJoined
-                ? 'bg-slate-700 text-green-400 border-2 border-green-500/30 shadow-none'
+              className={`w-full py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex flex-col items-center justify-center gap-1 ${isJoined
+                ? 'bg-slate-700 text-green-400 border-2 border-green-500/30'
                 : canAfford
-                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_8px_0_rgb(29,78,216)] active:translate-y-2 active:shadow-none'
+                  ? 'btn-bouncy btn-bouncy-primary text-white'
                   : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
                 }`}
             >
-              <span>{isJoined ? 'OU DEJA ENSKRI ✅' : 'KONFIME PATISIPASYON'}</span>
-              <span className="text-[8px] opacity-60 font-bold">
+              <span className="text-lg">{isJoined ? 'OU DEJA ENSKRI ✅' : 'KONFIME PATISIPASYON'}</span>
+              <span className="text-[10px] opacity-80 font-bold">
                 {isJoined ? 'Ale nan paj konkou ou yo' : 'Kòb la ap dedwi otomatikman'}
               </span>
             </button>

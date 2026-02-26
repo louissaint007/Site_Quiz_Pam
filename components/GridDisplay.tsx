@@ -7,9 +7,10 @@ interface GridDisplayProps {
     foundWords: string[];
     onWordFound: (word: string) => void;
     category?: string;
+    isShuffling?: boolean;
 }
 
-export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWordFound, category = 'Histoire' }) => {
+export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWordFound, category = 'Histoire', isShuffling = false }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isSelecting, setIsSelecting] = useState(false);
     const [startIndex, setStartIndex] = useState<number | null>(null);
@@ -70,7 +71,10 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
         if (!touch) return;
 
         const element = document.elementFromPoint(touch.clientX, touch.clientY);
-        const indexStr = element?.getAttribute('data-index');
+        // Sometimes the touch is on the inner span, so we need to climb up to find data-index
+        const cellElement = element?.closest('[data-index]');
+        const indexStr = cellElement?.getAttribute('data-index');
+
         if (indexStr) {
             setCurrentIndex(parseInt(indexStr, 10));
         }
@@ -157,65 +161,102 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
     return (
         <div
             ref={containerRef}
-            className="w-full max-w-md mx-auto aspect-square bg-slate-900 rounded-2xl p-2 md:p-4 grid grid-cols-10 gap-1 touch-none border border-white/10 shadow-2xl relative"
+            className="w-full max-w-md mx-auto aspect-square bg-white rounded-xl touch-none border-2 border-slate-300 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden"
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
         >
-            <AnimatePresence>
-                {grid.map((cell, index) => {
-                    const isSelected = selectedPath.includes(index);
-                    const isFound = cell.isWordPartOf && foundWords.includes(cell.isWordPartOf);
+            <div className="absolute inset-0 grid grid-cols-10 grid-rows-10 gap-0 z-0">
+                <AnimatePresence>
+                    {grid.map((cell, index) => {
+                        const isSelected = selectedPath.includes(index);
+                        const isFound = cell.isWordPartOf && foundWords.includes(cell.isWordPartOf);
 
-                    // For staggered growth, we need to know the index of this letter within its word
-                    // However, we'll keep it simple for now and use the index-based approach
-                    const staggeredDelay = isFound ? (index % 10) * 0.05 : 0;
+                        const staggeredDelay = isFound ? (index % 10) * 0.05 : 0;
+                        const defaultBg = (Math.floor(index / 10) + index % 10) % 2 === 0 ? 'rgba(241, 245, 249, 1)' : 'rgba(255, 255, 255, 1)'; // slate-100 / white
 
-                    return (
-                        <motion.div
-                            layout
-                            key={cell.id}
-                            data-index={index}
-                            onPointerDown={() => handlePointerDown(index)}
-                            initial={{ opacity: 0, scale: 0 }}
-                            animate={{
-                                opacity: isFound ? 0.8 : 1,
-                                scale: isFound ? activeEffect.animation.scale || 0.9 : (isSelected ? 1.1 : 1),
-                                backgroundColor: isFound ? activeEffect.color : (isSelected ? 'rgba(79, 70, 229, 0.8)' : 'rgba(30, 41, 59, 1)'),
-                                boxShadow: isFound ? activeEffect.shadow : (isSelected ? '0 0 10px rgba(79, 70, 229, 0.5)' : 'none'),
-                                ... (isFound ? activeEffect.animation : {})
-                            }}
-                            exit={{ opacity: 0, scale: 0 }}
-                            transition={{
-                                type: 'spring',
-                                stiffness: 300,
-                                damping: 25,
-                                delay: isFound ? staggeredDelay : 0
-                            }}
-                            className={`
-                                flex items-center justify-center relative
-                                rounded-md sm:rounded-lg overflow-hidden
-                                text-xl sm:text-2xl md:text-3xl font-black uppercase
-                                cursor-pointer select-none
-                                ${isSelected ? 'text-white z-10' : 'text-slate-300 border border-white/5 shadow-inner'}
-                            `}
-                        >
-                            <span className={isFound ? 'opacity-0' : 'opacity-100'}>{cell.char}</span>
-
-                            {isFound && (
+                        return (
+                            <motion.div
+                                key={cell.id} // using cell.id ensures framer-motion does a FLUID layout animate when the array shuffles!
+                                layout // <--- MAGICAL FLUID SHUFFLE
+                                data-index={index}
+                                onPointerDown={() => handlePointerDown(index)}
+                                initial={{ opacity: 0, scale: 0.5 }}
+                                animate={{
+                                    opacity: isShuffling ? 0.5 : 1,
+                                    scale: isShuffling ? 0.9 : 1,
+                                    backgroundColor: isSelected ? 'rgba(79, 70, 229, 0.2)' : defaultBg,
+                                    boxShadow: isSelected ? 'inset 0 0 15px rgba(79, 70, 229, 0.4)' : 'none',
+                                }}
+                                exit={{ opacity: 0, scale: 0 }}
+                                transition={{
+                                    type: 'spring',
+                                    stiffness: 300,
+                                    damping: 25,
+                                    delay: isFound && !isShuffling ? staggeredDelay : 0
+                                }}
+                                className={`
+                                    flex items-center justify-center relative
+                                    text-2xl sm:text-3xl md:text-4xl font-bold uppercase
+                                    cursor-pointer select-none
+                                    border-r border-b border-slate-200
+                                    ${isSelected ? 'text-indigo-600 z-10' : 'text-slate-900'}
+                                    overflow-visible
+                                `}
+                            >
+                                {/* Word Letter */}
                                 <motion.span
-                                    initial={{ scale: 0, opacity: 1, rotate: -45 }}
-                                    animate={{ scale: 2.5, opacity: 0, rotate: 45 }}
-                                    transition={{ duration: 0.6, ease: "easeOut", delay: staggeredDelay }}
-                                    className="absolute inset-0 flex items-center justify-center z-50 drop-shadow-xl"
+                                    animate={isFound && !isShuffling ? activeEffect.animation : {}}
+                                    className={isFound && !isShuffling ? 'text-white drop-shadow-md z-10 block pointer-events-none' : 'block pointer-events-none'}
                                 >
-                                    {activeEffect.emoji}
+                                    {cell.char}
                                 </motion.span>
-                            )}
-                        </motion.div>
-                    );
-                })}
-            </AnimatePresence>
+
+                                {/* Effect Overlay Emoji */}
+                                {isFound && !isShuffling && (
+                                    <motion.span
+                                        initial={{ scale: 0, opacity: 1, y: 20 }}
+                                        animate={{ scale: [0, 2.5, 2, 0], opacity: [0, 1, 1, 0], y: [20, -30, -50, -60] }}
+                                        transition={{ duration: 1.5, ease: "easeOut", delay: staggeredDelay }}
+                                        className="absolute z-50 drop-shadow-xl pointer-events-none text-2xl sm:text-3xl"
+                                    >
+                                        {activeEffect.emoji}
+                                    </motion.span>
+                                )}
+                            </motion.div>
+                        );
+                    })}
+                </AnimatePresence>
+            </div>
+
+            {/* SVG Overlay for drawing the arrow/line */}
+            <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none z-20">
+                <defs>
+                    <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                        <polygon points="0 0, 6 3, 0 6" fill="rgba(250, 204, 21, 0.9)" />
+                    </marker>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
+                        <feMerge>
+                            <feMergeNode in="coloredBlur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                </defs>
+                {startIndex !== null && currentIndex !== null && (
+                    <line
+                        x1={getCoords(startIndex).x * 10 + 5}
+                        y1={getCoords(startIndex).y * 10 + 5}
+                        x2={getCoords(currentIndex).x * 10 + 5}
+                        y2={getCoords(currentIndex).y * 10 + 5}
+                        stroke="rgba(250, 204, 21, 0.9)"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        markerEnd="url(#arrowhead)"
+                        filter="url(#glow)"
+                    />
+                )}
+            </svg>
         </div>
     );
 };
