@@ -50,9 +50,9 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit }) => {
   useEffect(() => {
     if (gameMode === 'pve' && currentPlayer === 'O' && !winner) {
       setIsAiThinking(true);
-      
+
       const worker = new Worker(new URL('../utils/gomoku-worker.ts', import.meta.url), { type: 'module' });
-      
+
       worker.onmessage = (e) => {
         setIsAiThinking(false);
         if (e.data.type === 'SUCCESS') {
@@ -66,9 +66,9 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit }) => {
 
       // Delay to let UI render the last move and feel "human"
       const timer = setTimeout(() => {
-        worker.postMessage({ board, player: 'O', depth: 3 });
+        worker.postMessage({ board, player: 'O', level: user.level || 1 });
       }, 500);
-      
+
       return () => {
         clearTimeout(timer);
         worker.terminate();
@@ -160,7 +160,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit }) => {
     setWinningLine([]);
     setGameState3D('idle');
     // Start with the loser of the last match, or X by default
-    setCurrentPlayer('X'); 
+    setCurrentPlayer('X');
   };
 
   const saveMatchResult = async (winningPlayer: 'X' | 'O') => {
@@ -172,7 +172,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit }) => {
         const newXp = (user.xp || 0) + 50;
         const newWins = (user.total_wins || 0) + 1;
         await supabase.from('profiles').update({ xp: newXp, total_wins: newWins }).eq('id', user.id);
-        
+
         setXpRewardToast('+50 XP Jwenn!');
         setTimeout(() => setXpRewardToast(null), 4000);
       }
@@ -196,196 +196,247 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit }) => {
 
   const executeRewind = () => {
     if (boardHistory.length < 2) return;
-    
+
     // Rewind 2 moves (undo AI's last move, and undo Player's last mistake move)
     const historyCopy = [...boardHistory];
     const previousBoard = historyCopy[historyCopy.length - 2];
-    
+
     setBoard(previousBoard.map(r => [...r]));
     setBoardHistory(historyCopy.slice(0, historyCopy.length - 2));
-    
+
     setWinner(null);
     setWinningLine([]);
     setGameState3D('idle');
     setCurrentPlayer('X'); // Back to player's turn (assuming player is always X in PvE)
   };
 
+  const getDifficultyBadge = (level: number) => {
+    if (level <= 10) return { label: 'Débutant', color: 'bg-green-500 text-white shadow-green-500/30' };
+    if (level <= 25) return { label: 'Intermédiaire', color: 'bg-blue-500 text-white shadow-blue-500/30' };
+    if (level <= 40) return { label: 'Avancé', color: 'bg-purple-500 text-white shadow-purple-500/30' };
+    return { label: 'Expert', color: 'bg-red-500 text-white shadow-red-500/30' };
+  };
+
+  const currentLevel = user.level || 1;
+  const badge = getDifficultyBadge(currentLevel);
+
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] max-w-7xl mx-auto gap-8 p-4">
-        
+
       {/* HUD & 3D Mascot Panel (Left Side) */}
-      <div className="lg:w-1/3 flex flex-col gap-6 bg-amber-50 rounded-[2.5rem] border-4 border-amber-900 shadow-[8px_8px_0_0_rgba(120,53,15,1)] p-6 overflow-hidden relative">
-        <div className="flex justify-between items-center bg-amber-200/50 p-4 rounded-3xl border-2 border-amber-800/20">
-            <button 
-                onClick={onExit}
-                className="bg-amber-900 text-amber-50 px-4 py-2 rounded-2xl font-black uppercase tracking-widest text-xs border-b-4 border-amber-950 active:translate-y-1 active:border-b-0 hover:bg-amber-800 transition-all"
-            >
-                ← Retounen
-            </button>
-            <h2 className="text-2xl font-black text-amber-900 tracking-tighter">MÒPYON</h2>
+      <div className="lg:w-1/3 flex flex-col gap-6 bg-slate-50 rounded-[2.5rem] border-4 border-slate-900 shadow-[8px_8px_0_0_rgba(15,23,42,1)] p-6 overflow-hidden relative">
+        <div className="flex justify-between items-center bg-slate-200/50 p-4 rounded-3xl border-2 border-slate-800/20">
+          <button
+            onClick={onExit}
+            className="bg-slate-900 text-slate-50 px-4 py-2 rounded-2xl font-black uppercase tracking-widest text-xs border-b-4 border-slate-950 active:translate-y-1 active:border-b-0 hover:bg-slate-800 transition-all"
+          >
+            ← Retounen
+          </button>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tighter">MÒPYON</h2>
         </div>
 
+        {/* Level Progression & Difficulty Badge */}
+        {gameMode === 'pve' && (
+          <div className="bg-white rounded-3xl border-4 border-slate-800 p-4 shadow-sm flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-black text-slate-600 uppercase">Nivo Ou</span>
+              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md ${badge.color}`}>
+                IA: {badge.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-black text-slate-800">{currentLevel}</span>
+              <div className="flex-1 h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                {/* Visual mock of XP progress to next level - using random % for visual based on user.xp if exact config isn't known, or use modulo */}
+                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(user.xp || 0) % 100}%` }}></div>
+              </div>
+              <span className="text-sm font-black text-slate-400">{currentLevel + 1}</span>
+            </div>
+          </div>
+        )}
+
         {/* Mascot Canvas */}
-        <div className="flex-1 min-h-[250px] relative bg-amber-100/50 rounded-3xl border-2 border-amber-900/10 inner-shadow">
-            {xpRewardToast && (
-                <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-green-500 text-white px-4 py-2 rounded-full font-black text-xs shadow-lg shadow-green-500/20 border-2 border-green-400 whitespace-nowrap"
-                >
-                    ⚡ {xpRewardToast}
-                </motion.div>
-            )}
-            <Canvas camera={{ position: [0, 1.5, 5], fov: 45 }}>
-                <ambientLight intensity={0.5} />
-                <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-                <Suspense fallback={null}>
-                    <Mascotte3D gameState={gameState3D} modelUrl={mascotUrl} />
-                </Suspense>
-                <ContactShadows position={[0, -1, 0]} opacity={0.4} scale={5} blur={2} far={4} />
-                <Environment preset="city" />
-            </Canvas>
+        <div className="flex-1 min-h-[250px] relative bg-slate-100/50 rounded-3xl border-2 border-slate-900/10 inner-shadow">
+          {xpRewardToast && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-green-500 text-white px-4 py-2 rounded-full font-black text-xs shadow-lg shadow-green-500/20 border-2 border-green-400 whitespace-nowrap"
+            >
+              ⚡ {xpRewardToast}
+            </motion.div>
+          )}
+          <Canvas camera={{ position: [0, 1.5, 5], fov: 45 }}>
+            <ambientLight intensity={0.5} />
+            <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
+            <Suspense fallback={null}>
+              <Mascotte3D gameState={gameState3D} modelUrl={mascotUrl} />
+            </Suspense>
+            <ContactShadows position={[0, -1, 0]} opacity={0.4} scale={5} blur={2} far={4} />
+            <Environment preset="city" />
+          </Canvas>
         </div>
 
         {/* Score HUD */}
         <div className="bg-white rounded-3xl border-4 border-slate-800 shadow-[0_4px_0_0_rgba(30,41,59,1)] p-4 flex justify-between items-center">
-            <div className={`flex flex-col items-center p-3 rounded-2xl flex-1 transition-colors ${currentPlayer === 'X' ? 'bg-blue-100' : 'bg-transparent'}`}>
-                <span className="text-4xl text-blue-500 font-black drop-shadow-sm">X</span>
-                <span className="text-xs font-black text-slate-500 uppercase mt-1">Jwè 1</span>
-                <span className="text-2xl font-black text-slate-800">{scores.X}</span>
-            </div>
-            <div className="w-1 h-16 bg-slate-200 rounded-full mx-2"></div>
-            <div className={`flex flex-col items-center p-3 rounded-2xl flex-1 transition-colors ${currentPlayer === 'O' ? 'bg-red-100' : 'bg-transparent'}`}>
-                <span className="text-4xl text-red-500 font-black drop-shadow-sm">O</span>
-                <span className="text-xs font-black text-slate-500 uppercase mt-1">
-                    {gameMode === 'pve' ? (isAiThinking ? 'Odinatè (ap reflechi...)' : 'Odinatè') : 'Jwè 2'}
-                </span>
-                <span className="text-2xl font-black text-slate-800">{scores.O}</span>
-            </div>
+          <div className={`flex flex-col items-center p-3 rounded-2xl flex-1 transition-colors ${currentPlayer === 'X' ? 'bg-slate-100' : 'bg-transparent'}`}>
+            <span className="text-4xl text-slate-900 font-black drop-shadow-sm">X</span>
+            <span className="text-xs font-black text-slate-500 uppercase mt-1">Jwè 1</span>
+            <span className="text-2xl font-black text-slate-800">{scores.X}</span>
+          </div>
+          <div className="w-1 h-16 bg-slate-200 rounded-full mx-2"></div>
+          <div className={`flex flex-col items-center p-3 rounded-2xl flex-1 transition-colors ${currentPlayer === 'O' ? 'bg-red-100' : 'bg-transparent'}`}>
+            <span className="text-4xl text-red-500 font-black drop-shadow-sm">O</span>
+            <span className="text-xs font-black text-slate-500 uppercase mt-1">
+              {gameMode === 'pve' ? (isAiThinking ? 'Odinatè (ap reflechi...)' : 'Odinatè') : 'Jwè 2'}
+            </span>
+            <span className="text-2xl font-black text-slate-800">{scores.O}</span>
+          </div>
         </div>
 
         {winner && (
-            <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-amber-100 rounded-3xl border-4 border-amber-500 p-4 text-center shadow-[0_4px_0_0_rgba(245,158,11,1)]"
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              className="bg-slate-100 rounded-3xl border-4 border-slate-800 p-6 md:p-8 text-center shadow-[0_8px_0_0_rgba(15,23,42,1)] max-w-sm w-full"
             >
-                <h3 className="text-xl font-black text-amber-900 uppercase">
-                    {winner === 'draw' ? 'Match Nul!' : `Jwè ${winner} Genyen!`}
-                </h3>
-                
-                {/* Ad Revive Button: Only show if allowed, it's PvE, and the user lost (O won) */}
-                {allowAdRevive && gameMode === 'pve' && winner === 'O' && boardHistory.length >= 2 && (
-                    <button 
-                        onClick={handleWatchAd}
-                        className="mt-4 w-full bg-indigo-500 text-white font-black py-3 px-2 rounded-2xl uppercase tracking-wider border-b-4 border-indigo-700 active:translate-y-1 active:border-b-0 hover:bg-indigo-400 transition-all shadow-lg flex items-center justify-center gap-2 text-sm"
-                    >
-                        <span>▶️</span> Gade Piblisite Pou Tounen Dèyè
-                    </button>
-                )}
+              <div className="w-20 h-20 mx-auto bg-slate-200 rounded-full flex items-center justify-center mb-6 border-4 border-slate-800 shadow-inner">
+                <span className="text-4xl">{winner === 'draw' ? '🤝' : '🏆'}</span>
+              </div>
+              <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">
+                {winner === 'draw' ? 'Match Nul!' : `Jwè ${winner} Genyen!`}
+              </h3>
+              {winner !== 'draw' && (
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-6">
+                  Bèl jwèt, bèl match!
+                </p>
+              )}
 
-                <div className="flex space-x-2 mt-3">
-                    <button 
-                        onClick={resetGame}
-                        className="flex-1 bg-amber-500 text-white font-black py-3 rounded-2xl uppercase tracking-widest border-b-4 border-amber-600 active:translate-y-1 active:border-b-0 hover:bg-amber-400 transition-all shadow-lg text-sm"
-                    >
-                        Rejwe
-                    </button>
-                    <button 
-                        onClick={onExit}
-                        className="flex-1 bg-slate-800 text-white font-black py-3 rounded-2xl uppercase tracking-widest border-b-4 border-slate-900 active:translate-y-1 active:border-b-0 hover:bg-slate-700 transition-all shadow-lg text-sm"
-                    >
-                        Soti
-                    </button>
+              {/* Ad Revive Button: Only show if allowed, it's PvE, and the user lost (O won) */}
+              {allowAdRevive && gameMode === 'pve' && winner === 'O' && boardHistory.length >= 2 && (
+                <button
+                  onClick={handleWatchAd}
+                  className="mb-4 w-full bg-indigo-500 text-white font-black py-4 px-4 rounded-2xl uppercase tracking-wider border-b-4 border-indigo-700 active:translate-y-1 active:border-b-0 hover:bg-indigo-400 transition-all shadow-lg flex items-center justify-center gap-3 text-sm"
+                >
+                  <span>▶️</span> Tounen Dèyè (Piblisite)
+                </button>
+              )}
+
+              <div className="flex flex-col space-y-3">
+                <button
+                  onClick={resetGame}
+                  className="w-full bg-green-500 text-white font-black py-4 rounded-2xl uppercase tracking-widest border-b-4 border-green-700 active:translate-y-1 active:border-b-0 hover:bg-green-400 transition-all shadow-lg text-lg"
+                >
+                  Rejwe Menm Mòd
+                </button>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => {
+                      resetGame();
+                      setGameMode(null);
+                    }}
+                    className="flex-1 bg-blue-500 text-white font-black py-3 rounded-2xl uppercase tracking-widest border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 hover:bg-blue-400 transition-all shadow-md text-xs"
+                  >
+                    Lòt Mòd
+                  </button>
+                  <button
+                    onClick={onExit}
+                    className="flex-1 bg-slate-800 text-white font-black py-3 rounded-2xl uppercase tracking-widest border-b-4 border-slate-900 active:translate-y-1 active:border-b-0 hover:bg-slate-700 transition-all shadow-md text-xs"
+                  >
+                    Soti
+                  </button>
                 </div>
+              </div>
             </motion.div>
+          </div>
         )}
       </div>
 
       {/* Board Panel (Right Side) */}
       <div className="lg:w-2/3 flex items-center justify-center p-4">
-        <div className="bg-amber-100 p-4 sm:p-6 md:p-8 rounded-[3rem] border-8 border-amber-900 shadow-[10px_10px_0_0_rgba(120,53,15,0.8)] relative">
-            
-            {/* Wooden Texture Overlay effect */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none rounded-[2.5rem]" 
-                 style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #78350f 10px, #78350f 20px)' }}>
+        <div className="bg-slate-100 p-4 sm:p-6 md:p-8 rounded-[3rem] border-8 border-slate-900 shadow-[10px_10px_0_0_rgba(15,23,42,0.8)] relative">
+
+          {/* Minimalist Grid Texture Overlay effect */}
+          <div className="absolute inset-0 opacity-5 pointer-events-none rounded-[2.5rem]"
+            style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #0f172a 10px, #0f172a 20px)' }}>
+          </div>
+
+          {!gameMode ? (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md rounded-[3rem]">
+              <h3 className="text-4xl font-black text-white mb-8 drop-shadow-lg text-center">Chwazi Mòd Jwèt</h3>
+              <div className="space-y-4 w-full max-w-sm">
+                <button
+                  onClick={() => setGameMode('pve')}
+                  className="w-full bg-slate-50 text-slate-900 py-4 rounded-2xl font-black text-lg uppercase tracking-widest border-b-8 border-slate-300 active:translate-y-2 active:border-b-0 transition-transform shadow-xl hover:bg-white"
+                >
+                  🤖 Jwe kont Odinatè
+                </button>
+                <button
+                  onClick={() => setGameMode('pvp')}
+                  className="w-full bg-slate-800 text-slate-50 py-4 rounded-2xl font-black text-lg uppercase tracking-widest border-b-8 border-slate-950 active:translate-y-2 active:border-b-0 transition-transform shadow-xl hover:bg-slate-700"
+                >
+                  👥 Jwe ak Zanmi (Local)
+                </button>
+              </div>
             </div>
+          ) : null}
 
-            {!gameMode ? (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-amber-900/80 backdrop-blur-md rounded-[3rem]">
-                <h3 className="text-4xl font-black text-amber-50 mb-8 drop-shadow-lg text-center">Chwazi Mòd Jwèt</h3>
-                <div className="space-y-4 w-full max-w-sm">
-                  <button 
-                    onClick={() => setGameMode('pve')}
-                    className="w-full bg-amber-50 text-amber-900 py-4 rounded-2xl font-black text-lg uppercase tracking-widest border-b-8 border-amber-200 active:translate-y-2 active:border-b-0 transition-transform shadow-xl hover:bg-white"
-                  >
-                    🤖 Jwe kont Odinatè
-                  </button>
-                  <button 
-                    onClick={() => setGameMode('pvp')}
-                    className="w-full bg-amber-600 text-amber-50 py-4 rounded-2xl font-black text-lg uppercase tracking-widest border-b-8 border-amber-800 active:translate-y-2 active:border-b-0 transition-transform shadow-xl hover:bg-amber-500"
-                  >
-                    👥 Jwe ak Zanmi (Local)
-                  </button>
-                </div>
+          {showAd && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 bg-slate-900 overflow-hidden rounded-[3rem]">
+              <div className="relative w-full max-w-md aspect-video bg-black flex items-center justify-center rounded-2xl border-4 border-slate-700 shadow-2xl">
+                <span className="text-white font-black uppercase tracking-widest flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full border-4 border-white border-t-transparent animate-spin"></div>
+                  Simulation Piblisite...
+                </span>
+                <div className="absolute bottom-4 right-4 bg-black/60 px-3 py-1 rounded-full text-white text-xs font-bold">Ad 1 of 1</div>
               </div>
-            ) : null}
+            </div>
+          )}
 
-            {showAd && (
-              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 bg-slate-900 overflow-hidden rounded-[3rem]">
-                 <div className="relative w-full max-w-md aspect-video bg-black flex items-center justify-center rounded-2xl border-4 border-slate-700 shadow-2xl">
-                    <span className="text-white font-black uppercase tracking-widest flex items-center gap-3">
-                        <div className="w-5 h-5 rounded-full border-4 border-white border-t-transparent animate-spin"></div> 
-                        Simulation Piblisite...
-                    </span>
-                    <div className="absolute bottom-4 right-4 bg-black/60 px-3 py-1 rounded-full text-white text-xs font-bold">Ad 1 of 1</div>
-                 </div>
-              </div>
-            )}
-
-            <div 
-                className="grid gap-1 relative z-10 bg-amber-200/50 p-2 rounded-2xl border-2 border-amber-800/20"
-                style={{ 
-                    gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(18px, 2.5rem))` 
-                }}
-            >
-                {board.map((row, rIndex) => 
-                    row.map((cell, cIndex) => {
-                        const isWinNode = isWinningCell(rIndex, cIndex);
-                        return (
-                            <div 
-                                key={`${rIndex}-${cIndex}`}
-                                onClick={() => handleCellClick(rIndex, cIndex)}
-                                className={`
-                                    w-full aspect-square border-b-2 border-r-2 border-amber-800/30
+          <div
+            className="grid gap-1 relative z-10 bg-white p-2 rounded-2xl border-2 border-slate-200"
+            style={{
+              gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(18px, 2.5rem))`
+            }}
+          >
+            {board.map((row, rIndex) =>
+              row.map((cell, cIndex) => {
+                const isWinNode = isWinningCell(rIndex, cIndex);
+                return (
+                  <div
+                    key={`${rIndex}-${cIndex}`}
+                    onClick={() => handleCellClick(rIndex, cIndex)}
+                    className={`
+                                    w-full aspect-square border-b-2 border-r-2 border-slate-200
                                     flex items-center justify-center cursor-pointer relative overflow-visible
-                                    ${board[rIndex][cIndex] === null && !winner ? 'hover:bg-amber-50/50' : ''}
+                                    ${board[rIndex][cIndex] === null && !winner ? 'hover:bg-slate-50' : ''}
                                 `}
-                            >
-                                {/* Cross intersection styling to look like a go board */}
-                                <div className="absolute inset-x-0 top-1/2 h-[1px] bg-amber-900/30 -z-10"></div>
-                                <div className="absolute inset-y-0 left-1/2 w-[1px] bg-amber-900/30 -z-10"></div>
+                  >
+                    {/* Cross intersection styling to look like a go board */}
+                    <div className="absolute inset-x-0 top-1/2 h-[1px] bg-slate-300 -z-10"></div>
+                    <div className="absolute inset-y-0 left-1/2 w-[1px] bg-slate-300 -z-10"></div>
 
-                                {cell !== null && (
-                                    <div
-                                        className={`
+                    {cell !== null && (
+                      <div
+                        className={`
                                             w-[80%] h-[80%] rounded-full shadow-md flex items-center justify-center font-black text-xl sm:text-2xl animate-in zoom-in duration-300
-                                            ${cell === 'X' 
-                                                ? 'bg-blue-500 text-white border-b-4 border-blue-700' 
-                                                : 'bg-red-500 text-white border-b-4 border-red-700'
-                                            }
-                                            ${isWinNode ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-amber-200 animate-pulse' : ''}
+                                            ${cell === 'X'
+                            ? 'bg-[#1e3a8a] text-transparent shadow-[inset_-2px_-4px_10px_rgba(0,0,0,0.5),0_4px_6px_rgba(30,58,138,0.5)]'
+                            : 'bg-[#dc2626] text-transparent shadow-[inset_-2px_-4px_10px_rgba(0,0,0,0.5),0_4px_6px_rgba(220,38,38,0.5)]'
+                          }
+                                            ${isWinNode ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-100 animate-pulse' : ''}
                                         `}
-                                    >
-                                        {cell}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })
-                )}
-            </div>
+                      >
+                        {cell}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </div>

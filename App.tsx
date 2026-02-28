@@ -26,11 +26,17 @@ import { logUserActivity } from './utils/audit';
 import { MoKwazeDinamik } from './components/MoKwazeDinamik';
 import { AdminStoryManager } from './components/AdminStoryManager';
 import { Gomoku } from './components/Gomoku';
+import TermsOfUse from './components/TermsOfUse';
+import { AdminFAQManager } from './components/AdminFAQManager';
+import FAQView from './components/FAQ';
+import ContactUs from './components/ContactUs';
+import { AdminContactMessages } from './components/AdminContactMessages';
+import PrivacyPolicy from './components/PrivacyPolicy';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
-  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena' | 'reviews' | 'my-contests' | 'mokwaze' | 'gomoku'>('landing');
-  const [adminTab, setAdminTab] = useState<'stats' | 'questions' | 'contests' | 'users' | 'messages' | 'settings' | 'stories'>('stats');
+  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena' | 'reviews' | 'my-contests' | 'mokwaze' | 'gomoku' | 'terms' | 'faq' | 'contact' | 'privacy'>('landing');
+  const [adminTab, setAdminTab] = useState<'stats' | 'questions' | 'contests' | 'users' | 'messages' | 'settings' | 'stories' | 'faqs' | 'support'>('stats');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -911,7 +917,15 @@ const App: React.FC = () => {
                 className="bg-gradient-to-br from-amber-600/20 to-orange-800/20 rounded-[2.5rem] border-2 border-amber-500/30 p-8 flex flex-col justify-between group shadow-lg cursor-pointer relative overflow-hidden"
                 onClick={() => setView('mokwaze')}
               >
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwYXRoIGQ9Ik0wLDBMODw4TTAsOEw4LDBaIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvc3ZnPg==')] opacity-50"></div>
+                {!siteSettings?.mokwaze_cover_url && (
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwYXRoIGQ9Ik0wLDBMODw4TTAsOEw4LDBaIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvc3ZnPg==')] opacity-50"></div>
+                )}
+                {siteSettings?.mokwaze_cover_url && (
+                  <div className="absolute inset-0 z-0">
+                    <img src={siteSettings.mokwaze_cover_url} alt="Mo Kwaze Cover" className="w-full h-full object-cover opacity-30 mix-blend-screen group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"></div>
+                  </div>
+                )}
                 <div className="space-y-4 relative z-10">
                   <div className="w-16 h-16 bg-amber-500/20 text-amber-500 border border-amber-500/50 rounded-2xl flex items-center justify-center text-3xl shadow-inner animate-pulse">⏱️</div>
                   <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Mo Kwaze Dinamik</h3>
@@ -932,11 +946,19 @@ const App: React.FC = () => {
                 className="bg-gradient-to-br from-amber-600/20 to-yellow-800/20 rounded-[2.5rem] border-2 border-amber-500/30 p-8 flex flex-col justify-between group shadow-lg cursor-pointer relative overflow-hidden"
                 onClick={() => setView('gomoku')}
               >
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwYXRoIGQ9Ik0wLDBMODw4TTAsOEw4LDBaIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvc3ZnPg==')] opacity-50 border-white/5"></div>
+                {!siteSettings?.mopyon_cover_url && (
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwYXRoIGQ9Ik0wLDBMODw4TTAsOEw4LDBaIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvc3ZnPg==')] opacity-50 border-white/5"></div>
+                )}
+                {siteSettings?.mopyon_cover_url && (
+                  <div className="absolute inset-0 z-0">
+                    <img src={siteSettings.mopyon_cover_url} alt="Mòpyon Cover" className="w-full h-full object-cover opacity-30 mix-blend-screen group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"></div>
+                  </div>
+                )}
                 <div className="space-y-4 relative z-10">
                   <div className="w-16 h-16 bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 rounded-2xl flex items-center justify-center text-3xl shadow-inner animate-bounce">⭕</div>
-                  <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Mòpyon (3D)</h3>
-                  <p className="text-yellow-200/80 text-sm font-semibold">Alinye 5 pyès pouw genyen kont zanmiw nan mòd 3D sa!</p>
+                  <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Mòpyon</h3>
+                  <p className="text-yellow-200/80 text-sm font-semibold">Alinye 5 pyès pouw genyen kont zanmiw oswa Entèlijans Atifisyèl la.</p>
                 </div>
                 <div className="relative z-10 mt-8">
                   <button
@@ -1074,6 +1096,8 @@ const App: React.FC = () => {
               <button onClick={() => setAdminTab('messages')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'messages' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Mesaj Chat</button>
               <button onClick={() => setAdminTab('settings')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Anviwònman</button>
               <button onClick={() => setAdminTab('stories')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'stories' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Istwa (Jwèt)</button>
+              <button onClick={() => setAdminTab('faqs')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'faqs' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>FAQ</button>
+              <button onClick={() => setAdminTab('support')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${adminTab === 'support' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:text-white'}`}>Sipò</button>
             </div>
             {adminTab === 'stats' && <AdminStats />}
             {adminTab === 'questions' && <AdminQuestionManager />}
@@ -1082,6 +1106,8 @@ const App: React.FC = () => {
             {adminTab === 'messages' && <AdminMessages />}
             {adminTab === 'settings' && <AdminSettings />}
             {adminTab === 'stories' && <AdminStoryManager />}
+            {adminTab === 'faqs' && <AdminFAQManager />}
+            {adminTab === 'support' && <AdminContactMessages />}
           </div>
         )}
 
@@ -1121,6 +1147,18 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Terms of Use */}
+      {view === 'terms' && <TermsOfUse onBack={() => setView('home')} />}
+
+      {/* FAQ */}
+      {view === 'faq' && <FAQView onBack={() => setView('home')} />}
+
+      {/* Contact Us */}
+      {view === 'contact' && <ContactUs user={user} onBack={() => setView('home')} />}
+
+      {/* Privacy Policy */}
+      {view === 'privacy' && <PrivacyPolicy onBack={() => setView('home')} />}
+
       {/* Manual Payment Modal */}
       {manualPaymentInfo && user && (
         <ManualPaymentModal
@@ -1136,8 +1174,59 @@ const App: React.FC = () => {
         />
       )}
 
-      <footer className="mt-auto py-6 mb-20 md:mb-0 text-center opacity-40">
-        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-500">© 2025 QuizPam - Tout dwa rezève</p>
+      <footer className="mt-auto py-8 mb-20 md:mb-0 border-t border-white/5 bg-slate-900/50">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col items-center gap-6">
+          {/* Social Links */}
+          {(siteSettings?.facebook_url || siteSettings?.instagram_url || siteSettings?.tiktok_url || siteSettings?.youtube_url || siteSettings?.x_url) && (
+            <div className="flex gap-4 items-center">
+              {siteSettings.facebook_url && (
+                <a href={siteSettings.facebook_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-[#1877F2] hover:bg-slate-700 transition-all">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+                </a>
+              )}
+              {siteSettings.instagram_url && (
+                <a href={siteSettings.instagram_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-[#E1306C] hover:bg-slate-700 transition-all">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" /></svg>
+                </a>
+              )}
+              {siteSettings.tiktok_url && (
+                <a href={siteSettings.tiktok_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-all">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93v7.2c0 1.96.22 3.97-1.13 5.56-1.16 1.34-2.83 2-4.57 2.02-2.31.02-4.66-.41-6.42-1.92-1.91-1.63-2.61-4.29-2.11-6.66.44-2.12 1.95-3.95 3.96-4.7 1.83-.69 3.9-.62 5.56.32v4.18c-1.14-.38-2.48-.38-3.48.33-.96.67-1.25 1.96-1.12 3.05.2 1.57 1.63 2.75 3.2 2.82 2.12.09 4.15-1.55 4.15-3.7V.02zm-2.02 0v16.15c-.01 2.76 2.37 5.06 5.16 4.94V16.6c-1.18-.04-2.36-.61-2.95-1.68-.68-1.23-.39-2.94.7-3.83-1.02-.38-2.17-.38-3.19-.01z" /></svg>
+                </a>
+              )}
+              {siteSettings.youtube_url && (
+                <a href={siteSettings.youtube_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-[#FF0000] hover:bg-slate-700 transition-all">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
+                </a>
+              )}
+              {siteSettings.x_url && (
+                <a href={siteSettings.x_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-all">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                </a>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-4 items-center flex-wrap justify-center">
+            <button onClick={() => setView('terms')} className="text-xs font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors">
+              Kondisyon Itilizasyon
+            </button>
+            <span className="text-slate-700 font-bold hidden md:inline">•</span>
+            <button onClick={() => setView('privacy')} className="text-xs font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors">
+              Konfidansyalite
+            </button>
+            <span className="text-slate-700 font-bold hidden md:inline">•</span>
+            <button onClick={() => setView('faq')} className="text-xs font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors">
+              FAQ
+            </button>
+            <span className="text-slate-700 font-bold hidden md:inline">•</span>
+            <button onClick={() => setView('contact')} className="text-xs font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors">
+              Kontakte Nou
+            </button>
+          </div>
+
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-600 block">© {new Date().getFullYear()} QuizPam - Tout dwa rezève</p>
+        </div>
       </footer>
 
       {/* MOBILE BOTTOM NAVIGATION BAR */}

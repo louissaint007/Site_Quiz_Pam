@@ -21,6 +21,14 @@ const AdminSettings: React.FC = () => {
     const soloFileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingSolo, setUploadingSolo] = useState(false);
 
+    // For Mo Kwaze Cover
+    const mokwazeFileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingMokwaze, setUploadingMokwaze] = useState(false);
+
+    // For Mopyon Cover
+    const mopyonCoverFileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingMopyonCover, setUploadingMopyonCover] = useState(false);
+
     // For Mopyon Mascot
     const mopyonFileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingMopyon, setUploadingMopyon] = useState(false);
@@ -155,6 +163,42 @@ const AdminSettings: React.FC = () => {
     const removeSoloImage = async () => {
         if (!settings) return;
         await saveSettings({ solo_game_image_url: null });
+    };
+
+    const handleMokwazeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingMokwaze(true);
+        try {
+            const url = await uploadImage(file);
+            if (url && settings) await saveSettings({ mokwaze_cover_url: url });
+        } finally {
+            setUploadingMokwaze(false);
+            if (mokwazeFileInputRef.current) mokwazeFileInputRef.current.value = '';
+        }
+    };
+
+    const removeMokwazeImage = async () => {
+        if (!settings) return;
+        await saveSettings({ mokwaze_cover_url: '' });
+    };
+
+    const handleMopyonCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingMopyonCover(true);
+        try {
+            const url = await uploadImage(file);
+            if (url && settings) await saveSettings({ mopyon_cover_url: url });
+        } finally {
+            setUploadingMopyonCover(false);
+            if (mopyonCoverFileInputRef.current) mopyonCoverFileInputRef.current.value = '';
+        }
+    };
+
+    const removeMopyonCoverImage = async () => {
+        if (!settings) return;
+        await saveSettings({ mopyon_cover_url: '' });
     };
 
     const handleMopyonUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -304,6 +348,90 @@ const AdminSettings: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Mo Kwaze and Mopyon Game Covers */}
+                <div className="space-y-4 pt-8 border-t border-slate-800">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                        <div>
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Imaj Lòt Jwèt Yo</h4>
+                            <p className="text-[10px] text-slate-500 font-bold mt-1">Chanje background pou bwat jwèt Mo Kwaze ak Mòpyon nan paj Akèy la.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Mo Kwaze Game Section */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <h5 className="text-xs font-black text-amber-500 uppercase tracking-widest">Mo Kwaze</h5>
+                                <button
+                                    onClick={() => mokwazeFileInputRef.current?.click()}
+                                    disabled={uploadingMokwaze || isSaving}
+                                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-lg uppercase tracking-widest text-[10px] shadow-lg shadow-amber-600/20 transition-all disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {uploadingMokwaze ? (
+                                        <><div className="w-3 h-3 border-2 border-white rounded-full animate-spin border-t-transparent" /> ...</>
+                                    ) : (
+                                        <>{settings?.mokwaze_cover_url ? 'Chanje' : '+ Ajoute'}</>
+                                    )}
+                                </button>
+                                <input type="file" accept="image/*,.gif" ref={mokwazeFileInputRef} onChange={handleMokwazeUpload} className="hidden" />
+                            </div>
+
+                            <div className="w-full aspect-[2/1] rounded-2xl border-2 border-dashed border-slate-700 bg-slate-800/40 p-4 flex flex-col justify-between overflow-hidden relative group">
+                                {settings?.mokwaze_cover_url && (
+                                    <img src={settings.mokwaze_cover_url} alt="Mokwaze Cover" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay" />
+                                )}
+                                <div className="relative z-10 space-y-2 pointer-events-none">
+                                    <div className="w-10 h-10 bg-amber-500/20 text-amber-500 border border-amber-500/50 rounded-xl flex items-center justify-center text-xl shadow-inner">⏱️</div>
+                                    <h3 className="text-lg font-black text-white">Mo Kwaze</h3>
+                                </div>
+                                {settings?.mokwaze_cover_url && (
+                                    <div className="absolute top-2 right-2 z-20">
+                                        <button onClick={removeMokwazeImage} className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Mopyon Game Section */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <h5 className="text-xs font-black text-yellow-500 uppercase tracking-widest">Mòpyon</h5>
+                                <button
+                                    onClick={() => mopyonCoverFileInputRef.current?.click()}
+                                    disabled={uploadingMopyonCover || isSaving}
+                                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-black rounded-lg uppercase tracking-widest text-[10px] shadow-lg shadow-yellow-600/20 transition-all disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {uploadingMopyonCover ? (
+                                        <><div className="w-3 h-3 border-2 border-white rounded-full animate-spin border-t-transparent" /> ...</>
+                                    ) : (
+                                        <>{settings?.mopyon_cover_url ? 'Chanje' : '+ Ajoute'}</>
+                                    )}
+                                </button>
+                                <input type="file" accept="image/*,.gif" ref={mopyonCoverFileInputRef} onChange={handleMopyonCoverUpload} className="hidden" />
+                            </div>
+
+                            <div className="w-full aspect-[2/1] rounded-2xl border-2 border-dashed border-slate-700 bg-slate-800/40 p-4 flex flex-col justify-between overflow-hidden relative group">
+                                {settings?.mopyon_cover_url && (
+                                    <img src={settings.mopyon_cover_url} alt="Mopyon Cover" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay" />
+                                )}
+                                <div className="relative z-10 space-y-2 pointer-events-none">
+                                    <div className="w-10 h-10 bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 rounded-xl flex items-center justify-center text-xl shadow-inner">⭕</div>
+                                    <h3 className="text-lg font-black text-white">Mòpyon</h3>
+                                </div>
+                                {settings?.mopyon_cover_url && (
+                                    <div className="absolute top-2 right-2 z-20">
+                                        <button onClick={removeMopyonCoverImage} className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Mopyon Mascot Section */}
                 <div className="space-y-4 pt-8 border-t border-slate-800">
                     <div className="flex justify-between items-center border-b border-slate-800 pb-4">
@@ -374,8 +502,8 @@ const AdminSettings: React.FC = () => {
                                 <p className="text-xs text-slate-500 font-medium mt-1">Pèmèt jwè yo gade yon piblisite pou yo annile dènye kout yo nan Gomoku lè yo pèdi.</p>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
-                                <input 
-                                    type="checkbox" 
+                                <input
+                                    type="checkbox"
                                     className="sr-only peer"
                                     checked={settings?.allow_gomoku_ad_revive || false}
                                     onChange={(e) => saveSettings({ allow_gomoku_ad_revive: e.target.checked })}
@@ -442,6 +570,138 @@ const AdminSettings: React.FC = () => {
                                     onClick={() => saveSettings({ whatsapp_number: settings?.whatsapp_number })}
                                     disabled={isSaving}
                                     className="bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-black uppercase text-[10px] px-6 rounded-xl transition-colors"
+                                >
+                                    Sove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Social Media Section */}
+                <div className="space-y-4 pt-8 border-t border-slate-800">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                        <div>
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Rezo Sosyal yo</h4>
+                            <p className="text-[10px] text-slate-500 font-bold mt-1">Mete lyen kote itilizatè yo ka jwenn ou. Si w kite yon kazye vid, icône lan pap parèt.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Facebook */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <h5 className="flex items-center gap-2 text-xs font-black text-[#1877F2] uppercase tracking-widest">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+                                Facebook
+                            </h5>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={settings?.facebook_url || ''}
+                                    onChange={(e) => setSettings(prev => prev ? { ...prev, facebook_url: e.target.value } : null)}
+                                    placeholder="https://facebook.com/..."
+                                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#1877F2] transition-colors"
+                                />
+                                <button
+                                    onClick={() => saveSettings({ facebook_url: settings?.facebook_url })}
+                                    disabled={isSaving}
+                                    className="bg-[#1877F2]/20 hover:bg-[#1877F2]/40 text-[#1877F2] border border-[#1877F2]/50 disabled:opacity-50 font-black uppercase text-[10px] px-4 rounded-xl transition-colors"
+                                >
+                                    Sove
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Instagram */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <h5 className="flex items-center gap-2 text-xs font-black text-[#E1306C] uppercase tracking-widest">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" /></svg>
+                                Instagram
+                            </h5>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={settings?.instagram_url || ''}
+                                    onChange={(e) => setSettings(prev => prev ? { ...prev, instagram_url: e.target.value } : null)}
+                                    placeholder="https://instagram.com/..."
+                                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#E1306C] transition-colors"
+                                />
+                                <button
+                                    onClick={() => saveSettings({ instagram_url: settings?.instagram_url })}
+                                    disabled={isSaving}
+                                    className="bg-[#E1306C]/20 hover:bg-[#E1306C]/40 text-[#E1306C] border border-[#E1306C]/50 disabled:opacity-50 font-black uppercase text-[10px] px-4 rounded-xl transition-colors"
+                                >
+                                    Sove
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* TikTok */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <h5 className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-widest">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93v7.2c0 1.96.22 3.97-1.13 5.56-1.16 1.34-2.83 2-4.57 2.02-2.31.02-4.66-.41-6.42-1.92-1.91-1.63-2.61-4.29-2.11-6.66.44-2.12 1.95-3.95 3.96-4.7 1.83-.69 3.9-.62 5.56.32v4.18c-1.14-.38-2.48-.38-3.48.33-.96.67-1.25 1.96-1.12 3.05.2 1.57 1.63 2.75 3.2 2.82 2.12.09 4.15-1.55 4.15-3.7V.02zm-2.02 0v16.15c-.01 2.76 2.37 5.06 5.16 4.94V16.6c-1.18-.04-2.36-.61-2.95-1.68-.68-1.23-.39-2.94.7-3.83-1.02-.38-2.17-.38-3.19-.01z" /></svg>
+                                TikTok
+                            </h5>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={settings?.tiktok_url || ''}
+                                    onChange={(e) => setSettings(prev => prev ? { ...prev, tiktok_url: e.target.value } : null)}
+                                    placeholder="https://tiktok.com/@..."
+                                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-white transition-colors"
+                                />
+                                <button
+                                    onClick={() => saveSettings({ tiktok_url: settings?.tiktok_url })}
+                                    disabled={isSaving}
+                                    className="bg-white/10 hover:bg-white/20 text-white border border-white/50 disabled:opacity-50 font-black uppercase text-[10px] px-4 rounded-xl transition-colors"
+                                >
+                                    Sove
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* YouTube */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <h5 className="flex items-center gap-2 text-xs font-black text-[#FF0000] uppercase tracking-widest">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
+                                YouTube
+                            </h5>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={settings?.youtube_url || ''}
+                                    onChange={(e) => setSettings(prev => prev ? { ...prev, youtube_url: e.target.value } : null)}
+                                    placeholder="https://youtube.com/..."
+                                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#FF0000] transition-colors"
+                                />
+                                <button
+                                    onClick={() => saveSettings({ youtube_url: settings?.youtube_url })}
+                                    disabled={isSaving}
+                                    className="bg-[#FF0000]/20 hover:bg-[#FF0000]/40 text-[#FF0000] border border-[#FF0000]/50 disabled:opacity-50 font-black uppercase text-[10px] px-4 rounded-xl transition-colors"
+                                >
+                                    Sove
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* X (Twitter) */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <h5 className="flex items-center gap-2 text-xs font-black text-slate-300 uppercase tracking-widest">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                                X (Twitter)
+                            </h5>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={settings?.x_url || ''}
+                                    onChange={(e) => setSettings(prev => prev ? { ...prev, x_url: e.target.value } : null)}
+                                    placeholder="https://x.com/..."
+                                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-slate-300 transition-colors"
+                                />
+                                <button
+                                    onClick={() => saveSettings({ x_url: settings?.x_url })}
+                                    disabled={isSaving}
+                                    className="bg-slate-300/20 hover:bg-slate-300/40 text-slate-300 border border-slate-300/50 disabled:opacity-50 font-black uppercase text-[10px] px-4 rounded-xl transition-colors"
                                 >
                                     Sove
                                 </button>

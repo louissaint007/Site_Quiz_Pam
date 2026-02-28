@@ -150,12 +150,19 @@ export interface SiteSettings {
   id: number;
   carousel_images: string[];
   solo_game_image_url: string | null;
+  mokwaze_cover_url?: string;
+  mopyon_cover_url?: string;
   top_players?: { id: string, username: string, avatar_url: string | null, score: number }[];
   moncash_number?: string;
   natcash_number?: string;
   whatsapp_number?: string;
   allow_gomoku_ad_revive?: boolean;
   mopyon_mascot_url?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  tiktok_url?: string;
+  youtube_url?: string;
+  x_url?: string;
   updated_at: string;
 }
 
@@ -185,4 +192,27 @@ export interface GameStory {
   difficulty: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContactMessage {
+  id: string;
+  user_id: string;
+  subject: string;
+  message: string;
+  status: 'pending' | 'resolved';
+  created_at: string;
+  resolved_at?: string;
+  profiles?: {
+    username: string;
+    email: string;
+  };
 }
