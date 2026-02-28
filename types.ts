@@ -216,3 +216,22 @@ export interface ContactMessage {
     email: string;
   };
 }
+
+export interface MopyonMatch {
+  id: string;
+  creator_id: string;
+  joiner_id: string | null;
+  status: 'waiting' | 'in_progress' | 'completed' | 'abandoned';
+  board_state: any; // JSONB representing Player[][]
+  current_turn: string | null; // UUID of the player whose turn it is
+  winner_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OnlinePlayer {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  status: 'online' | 'playing';
+}
