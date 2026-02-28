@@ -5,7 +5,7 @@ import { Environment, ContactShadows } from '@react-three/drei';
 import { Mascotte3D } from './Mascotte3D';
 import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
-import { getBestMove } from '../utils/gomoku-ai';
+import { UserProfile } from '../types';
 
 interface GomokuProps {
   user: UserProfile;
@@ -52,20 +52,28 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit }) => {
     if (gameMode === 'pve' && currentPlayer === 'O' && !winner) {
       setIsAiThinking(true);
       
+      const worker = new Worker(new URL('../utils/gomoku-worker.ts', import.meta.url), { type: 'module' });
+      
+      worker.onmessage = (e) => {
+        setIsAiThinking(false);
+        if (e.data.type === 'SUCCESS') {
+          const move = e.data.move;
+          handleCellClick(move.row, move.col, true);
+        } else {
+          console.error("AI Worker Error:", e.data.message);
+        }
+        worker.terminate();
+      };
+
       // Delay to let UI render the last move and feel "human"
       const timer = setTimeout(() => {
-        try {
-          // Process move with depth 3
-          const move = getBestMove(board, 'O', 3);
-          handleCellClick(move.row, move.col, true);
-        } catch (err) {
-          console.error("AI Error:", err);
-        } finally {
-          setIsAiThinking(false);
-        }
+        worker.postMessage({ board, player: 'O', depth: 3 });
       }, 500);
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        worker.terminate();
+      };
     }
   }, [currentPlayer, gameMode, winner]); // Deliberately omit board, isAiThinking, and handleCellClick to prevent cancellation loops
 
@@ -360,24 +368,20 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit }) => {
                                 <div className="absolute inset-x-0 top-1/2 h-[1px] bg-amber-900/30 -z-10"></div>
                                 <div className="absolute inset-y-0 left-1/2 w-[1px] bg-amber-900/30 -z-10"></div>
 
-                                <AnimatePresence>
-                                    {cell !== null && (
-                                        <motion.div
-                                            initial={{ scale: 0, rotate: -45 }}
-                                            animate={{ scale: 1, rotate: 0 }}
-                                            className={`
-                                                w-[80%] h-[80%] rounded-full shadow-md flex items-center justify-center font-black text-xl sm:text-2xl
-                                                ${cell === 'X' 
-                                                    ? 'bg-blue-500 text-white border-b-4 border-blue-700' 
-                                                    : 'bg-red-500 text-white border-b-4 border-red-700'
-                                                }
-                                                ${isWinNode ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-amber-200 animate-pulse' : ''}
-                                            `}
-                                        >
-                                            {cell}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                {cell !== null && (
+                                    <div
+                                        className={`
+                                            w-[80%] h-[80%] rounded-full shadow-md flex items-center justify-center font-black text-xl sm:text-2xl animate-in zoom-in duration-300
+                                            ${cell === 'X' 
+                                                ? 'bg-blue-500 text-white border-b-4 border-blue-700' 
+                                                : 'bg-red-500 text-white border-b-4 border-red-700'
+                                            }
+                                            ${isWinNode ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-amber-200 animate-pulse' : ''}
+                                        `}
+                                    >
+                                        {cell}
+                                    </div>
+                                )}
                             </div>
                         );
                     })
