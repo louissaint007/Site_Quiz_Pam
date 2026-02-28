@@ -5,7 +5,6 @@ import { Environment, ContactShadows } from '@react-three/drei';
 import { Mascotte3D } from './Mascotte3D';
 import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
-import { UserProfile } from '../types';
 
 interface GomokuProps {
   user: UserProfile;
