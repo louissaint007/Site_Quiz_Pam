@@ -44,7 +44,5 @@ export const Mascotte3D: React.FC<Mascotte3DProps> = ({ gameState, modelUrl }) =
   );
 };
 
-};
-
 // Preload the default model
 useGLTF.preload('/mascotte.glb');
