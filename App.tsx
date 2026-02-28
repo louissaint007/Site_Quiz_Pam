@@ -61,6 +61,8 @@ const App: React.FC = () => {
   const [siteSettings, setSiteSettings] = useState<any>(null);
   const [fraudWarnings, setFraudWarnings] = useState(0);
   const [selectedPrizeImage, setSelectedPrizeImage] = useState<string | null>(null);
+  const [mopyonRoomId, setMopyonRoomId] = useState<string | null>(null);
+  const [isGameMenuOpen, setIsGameMenuOpen] = useState(false);
 
   // Timer reference for ms tracking
   const questionStartTimeRef = useRef<number>(0);
@@ -71,6 +73,13 @@ const App: React.FC = () => {
   useEffect(() => {
     const pending = localStorage.getItem('quizpam_sync_queue');
     if (pending) setHasPendingSync(true);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const room = urlParams.get('room');
+    if (room) {
+      setMopyonRoomId(room);
+      setView('gomoku');
+    }
   }, []);
 
   const fetchContests = useCallback(async () => {
@@ -852,7 +861,7 @@ const App: React.FC = () => {
           <MoKwazeDinamik onExit={() => setView('home')} />
         )}
         {view === 'gomoku' && user && (
-          <Gomoku user={user} onExit={() => setView('home')} />
+          <Gomoku user={user} onExit={() => { setView('home'); setMopyonRoomId(null); window.history.replaceState({}, '', window.location.pathname); }} roomId={mopyonRoomId} />
         )}
 
         {view === 'home' && (
@@ -1254,13 +1263,63 @@ const App: React.FC = () => {
 
           {/* Center Play/Action Button (Optional prominent button) */}
           <div className="relative -top-6">
+            <AnimatePresence>
+              {isGameMenuOpen && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsGameMenuOpen(false)}
+                    className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm"
+                  />
+                  <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-50 w-64 pb-4">
+                    <motion.button
+                      initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                      transition={{ delay: 0.1 }}
+                      onClick={() => { startGame('solo'); setIsGameMenuOpen(false); }}
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 border-b-4 border-blue-800 active:translate-y-1 active:border-b-0"
+                    >
+                      <span className="text-xl">🕹️</span> Pratik Solo
+                    </motion.button>
+
+                    <motion.button
+                      initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                      transition={{ delay: 0.05 }}
+                      onClick={() => { setView('mokwaze'); setIsGameMenuOpen(false); }}
+                      className="w-full bg-amber-500 hover:bg-amber-400 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 border-b-4 border-amber-700 active:translate-y-1 active:border-b-0"
+                    >
+                      <span className="text-xl">⏱️</span> Mo Kwaze
+                    </motion.button>
+
+                    <motion.button
+                      initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                      onClick={() => { setView('gomoku'); setIsGameMenuOpen(false); }}
+                      className="w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 border-b-4 border-yellow-600 active:translate-y-1 active:border-b-0"
+                    >
+                      <span className="text-xl">⭕</span> Mòpyon
+                    </motion.button>
+                  </div>
+                </>
+              )}
+            </AnimatePresence>
             <motion.button
               whileHover={{ scale: 1.1, rotate: [-5, 5, -5, 5, 0] }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => setView('mokwaze')}
-              className="w-16 h-16 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-3xl shadow-[0_5px_15px_rgba(245,158,11,0.5)] border-4 border-slate-900 active:scale-90 transition-transform"
+              onClick={() => setIsGameMenuOpen(!isGameMenuOpen)}
+              className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-[0_5px_15px_rgba(245,158,11,0.5)] border-4 border-slate-900 active:scale-90 transition-all z-50 relative ${isGameMenuOpen ? 'bg-slate-700 !shadow-none !border-slate-600 rotate-45' : 'bg-gradient-to-tr from-amber-500 to-orange-500'}`}
             >
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+              {isGameMenuOpen ? (
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg>
+              ) : (
+                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+              )}
             </motion.button>
           </div>
 
