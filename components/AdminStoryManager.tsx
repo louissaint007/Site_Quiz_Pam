@@ -199,7 +199,7 @@ export const AdminStoryManager: React.FC = () => {
                     disabled={isSaving}
                     className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black rounded-xl uppercase tracking-widest shadow-lg hover:shadow-blue-500/50 transition-all mt-4"
                 >
-                    {isSaving ? 'Ap Anrejistre...' : '💾 Sove Istwa a'}
+                    {isSaving ? 'Ap Anrejistre...' : '💾 Save Istwa a'}
                 </button>
             </div>
 
@@ -233,7 +233,7 @@ export const AdminStoryManager: React.FC = () => {
                             </button>
                         </div>
                     ))}
-                    {stories.length === 0 && <p className="text-slate-500 text-center py-8">Poko gen istwa ki sove nan bazdone a.</p>}
+                    {stories.length === 0 && <p className="text-slate-500 text-center py-8">Poko gen istwa ki save nan bazdone a.</p>}
                 </div>
             </div>
         </div>

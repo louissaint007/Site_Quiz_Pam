@@ -397,8 +397,8 @@ const AdminContestManager: React.FC = () => {
 
       {/* Confirmation Modal */}
       {contestToDelete && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in duration-300">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setContestToDelete(null)}>
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
             <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             </div>
@@ -425,8 +425,8 @@ const AdminContestManager: React.FC = () => {
 
       {/* Participants Stats Modal */}
       {viewingParticipantsContestId && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl max-h-[85vh] rounded-[2.5rem] flex flex-col shadow-2xl animate-in zoom-in duration-300 overflow-hidden">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setViewingParticipantsContestId(null)}>
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl max-h-[85vh] rounded-[2.5rem] flex flex-col shadow-2xl animate-in zoom-in duration-300 overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-8 border-b border-slate-800 flex justify-between items-center">
               <div>
                 <h3 className="text-xl font-black text-white uppercase tracking-tight">Patisipan & Rezilta</h3>

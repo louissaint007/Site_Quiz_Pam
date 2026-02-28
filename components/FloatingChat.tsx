@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { UserProfile, ChatMessage } from '../types';
+import { motion } from 'framer-motion';
 
 interface FloatingChatProps {
     user: UserProfile;
@@ -98,7 +99,10 @@ export const FloatingChat: React.FC<FloatingChatProps> = ({ user }) => {
     return (
         <>
             {/* Floating Button */}
-            <button
+            <motion.button
+                drag="y"
+                dragConstraints={{ top: -window.innerHeight + 100, bottom: 0 }}
+                dragMomentum={false}
                 onClick={() => setIsOpen(!isOpen)}
                 className="fixed bottom-6 right-6 z-[90] w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all outline-none border-2 border-white/10"
             >
@@ -112,11 +116,16 @@ export const FloatingChat: React.FC<FloatingChatProps> = ({ user }) => {
                         {unreadCount}
                     </span>
                 )}
-            </button>
+            </motion.button>
 
             {/* Chat Window */}
             {isOpen && (
-                <div className="fixed bottom-24 right-6 z-[90] w-[350px] max-w-[calc(100vw-3rem)] h-[500px] max-h-[calc(100vh-8rem)] bg-slate-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+                <>
+                    <div 
+                        className="fixed inset-0 z-[85]"
+                        onClick={() => setIsOpen(false)}
+                    />
+                    <div className="fixed bottom-24 right-6 z-[90] w-[350px] max-w-[calc(100vw-3rem)] h-[500px] max-h-[calc(100vh-8rem)] bg-slate-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
 
                     {/* Default Header Header */}
                     <div className="bg-gradient-to-r from-blue-700 to-indigo-700 p-4 shrink-0 flex items-center justify-between shadow-md">
@@ -174,6 +183,7 @@ export const FloatingChat: React.FC<FloatingChatProps> = ({ user }) => {
                         </div>
                     </form>
                 </div>
+                </>
             )}
         </>
     );

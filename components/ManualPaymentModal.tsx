@@ -137,7 +137,7 @@ export const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ user, am
     }
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}>
             <div className="max-w-md w-full bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
@@ -174,7 +174,7 @@ export const ManualPaymentModal: React.FC<ManualPaymentModalProps> = ({ user, am
                                 disabled={isSaving}
                                 className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black uppercase text-[10px] px-4 rounded-xl transition-colors"
                             >
-                                {isSaving ? '...' : (paymentInfo ? 'Aktyalize' : 'Sove')}
+                                {isSaving ? '...' : (paymentInfo ? 'Aktyalize' : 'Save')}
                             </button>
                         </div>
                     </div>

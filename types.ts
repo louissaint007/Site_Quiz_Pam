@@ -154,6 +154,8 @@ export interface SiteSettings {
   moncash_number?: string;
   natcash_number?: string;
   whatsapp_number?: string;
+  allow_gomoku_ad_revive?: boolean;
+  mopyon_mascot_url?: string;
   updated_at: string;
 }
 

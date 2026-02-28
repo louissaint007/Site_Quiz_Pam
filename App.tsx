@@ -25,10 +25,11 @@ import { AdminMessages } from './components/AdminMessages';
 import { logUserActivity } from './utils/audit';
 import { MoKwazeDinamik } from './components/MoKwazeDinamik';
 import { AdminStoryManager } from './components/AdminStoryManager';
+import { Gomoku } from './components/Gomoku';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
-  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena' | 'reviews' | 'my-contests' | 'mokwaze'>('landing');
+  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena' | 'reviews' | 'my-contests' | 'mokwaze' | 'gomoku'>('landing');
   const [adminTab, setAdminTab] = useState<'stats' | 'questions' | 'contests' | 'users' | 'messages' | 'settings' | 'stories'>('stats');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -538,7 +539,7 @@ const App: React.FC = () => {
         // Validation: Detect impossible scores (e.g., < 1s per question on average)
         const minLegalTime = questions.length * 800; // 0.8s minimum per question
         if (newTotalTime < minLegalTime) {
-          setError("Pèfòmans sa a sispèk. Rezilta a pa sove pou sekirite.");
+          setError("Pèfòmans sa a sispèk. Rezilta a pa save pou sekirite.");
           setGameState('ready');
           setView('home');
           return;
@@ -692,7 +693,7 @@ const App: React.FC = () => {
             ))}
 
             {session && user?.is_admin && (
-              <button onClick={() => setView('admin')} className="text-[10px] font-black uppercase tracking-widest bg-fuchsia-600 shadow-[0_4px_0_#86198f] active:shadow-none active:translate-y-1 text-white px-4 py-2 rounded-xl transition-all ml-2 hidden sm:block border border-white/20">
+              <button onClick={() => setView('admin')} className="text-[10px] font-black uppercase tracking-widest bg-fuchsia-600 shadow-[0_4px_0_#86198f] active:shadow-none active:translate-y-1 text-white px-2 py-1.5 md:px-4 md:py-2 rounded-xl transition-all ml-2 border border-white/20">
                 Admin
               </button>
             )}
@@ -712,12 +713,12 @@ const App: React.FC = () => {
                   <span className="text-red-500 font-black uppercase text-[10px] tracking-[0.2em]">Pati #1 Ayiti a</span>
                 </div>
                 <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none">
-                  DEFIYE <br />
+                  DEFYE <br />
                   <span className="text-red-500">TÈT OU.</span> <br />
                   GENYEN.
                 </h1>
                 <p className="text-xl text-slate-400 max-w-lg">
-                  QuizPam se premye platfòm kilti jeneral an Ayiti ki pèmèt ou teste konesans ou, defiye zanmi w, epi genyen prim an lajan kach.
+                  QuizPam se premye platfòm kilti jeneral an Ayiti ki pèmèt ou teste konesans ou, defye zanmi w, epi genyen prim an lajan kach.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 pt-4 flex-wrap justify-center md:justify-start">
                   <button onClick={() => setView('home')} className="px-10 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black rounded-[2rem] uppercase text-xs tracking-widest shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:shadow-[0_0_40px_rgba(59,130,246,0.7)] transition-all active:scale-95 border border-white/10">ANTRE NAN JWÈT LA</button>
@@ -844,6 +845,9 @@ const App: React.FC = () => {
         {view === 'mokwaze' && (
           <MoKwazeDinamik onExit={() => setView('home')} />
         )}
+        {view === 'gomoku' && user && (
+          <Gomoku user={user} onExit={() => setView('home')} />
+        )}
 
         {view === 'home' && (
           <div className="space-y-12 py-12 animate-in fade-in duration-500">
@@ -917,6 +921,27 @@ const App: React.FC = () => {
                   <button
                     className="w-full btn-bouncy py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-white"
                     style={{ backgroundColor: '#f59e0b', boxShadow: '0 6px 0 #b45309, 0 8px 10px rgba(0,0,0,0.2)' }}
+                  >
+                    JWE KOUNYEA
+                  </button>
+                </div>
+              </div>
+
+              {/* MOPYON CARD */}
+              <div
+                className="bg-gradient-to-br from-amber-600/20 to-yellow-800/20 rounded-[2.5rem] border-2 border-amber-500/30 p-8 flex flex-col justify-between group shadow-lg cursor-pointer relative overflow-hidden"
+                onClick={() => setView('gomoku')}
+              >
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwYXRoIGQ9Ik0wLDBMODw4TTAsOEw4LDBaIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvc3ZnPg==')] opacity-50 border-white/5"></div>
+                <div className="space-y-4 relative z-10">
+                  <div className="w-16 h-16 bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 rounded-2xl flex items-center justify-center text-3xl shadow-inner animate-bounce">⭕</div>
+                  <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Mòpyon (3D)</h3>
+                  <p className="text-yellow-200/80 text-sm font-semibold">Alinye 5 pyès pouw genyen kont zanmiw nan mòd 3D sa!</p>
+                </div>
+                <div className="relative z-10 mt-8">
+                  <button
+                    className="w-full btn-bouncy py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-amber-900"
+                    style={{ backgroundColor: '#fcd34d', boxShadow: '0 6px 0 #d97706, 0 8px 10px rgba(0,0,0,0.2)' }}
                   >
                     JWE KOUNYEA
                   </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 export const AdminUserExplorer: React.FC = () => {
@@ -14,6 +14,7 @@ export const AdminUserExplorer: React.FC = () => {
 
     const [manualAmount, setManualAmount] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
+    const isProcessingRef = useRef(false);
 
     useEffect(() => {
         fetchUsers();
@@ -67,12 +68,14 @@ export const AdminUserExplorer: React.FC = () => {
     }, [searchQuery, sortBy, users]);
 
     const handleManualTransaction = async (userId: string, type: 'deposit' | 'withdrawal') => {
+        if (isProcessingRef.current) return;
         const amount = Number(manualAmount);
         if (!amount || amount <= 0) {
             alert("Tanpri mete yon montan valab");
             return;
         }
 
+        isProcessingRef.current = true;
         setIsUpdating(true);
         try {
             const orderId = `${userId}__manual_${crypto.randomUUID()}`;
@@ -96,6 +99,7 @@ export const AdminUserExplorer: React.FC = () => {
             console.error(err);
             alert("Erè lè n ap fè tranzaksyon an: " + err.message);
         } finally {
+            isProcessingRef.current = false;
             setIsUpdating(false);
         }
     };

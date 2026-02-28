@@ -21,6 +21,10 @@ const AdminSettings: React.FC = () => {
     const soloFileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingSolo, setUploadingSolo] = useState(false);
 
+    // For Mopyon Mascot
+    const mopyonFileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingMopyon, setUploadingMopyon] = useState(false);
+
     const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
         setNotification({ message, type });
         setTimeout(() => setNotification(null), 4000);
@@ -43,7 +47,7 @@ const AdminSettings: React.FC = () => {
                 setSettings(data);
             } else {
                 // Initialize default
-                const defaultSettings = { id: 1, carousel_images: [], solo_game_image_url: null, updated_at: new Date().toISOString() };
+                const defaultSettings = { id: 1, carousel_images: [], solo_game_image_url: null, allow_gomoku_ad_revive: false, updated_at: new Date().toISOString() };
                 setSettings(defaultSettings);
             }
         } catch (err: any) {
@@ -68,7 +72,7 @@ const AdminSettings: React.FC = () => {
 
             if (error) throw error;
             setSettings(newSettings as SiteSettings);
-            showNotification("Chanjman sove avèk siksè!");
+            showNotification("Chanjman save avèk siksè!");
         } catch (err: any) {
             console.error("Save error:", err);
             showNotification("Erè pandan anrejistreman an: " + err.message, 'error');
@@ -151,6 +155,28 @@ const AdminSettings: React.FC = () => {
     const removeSoloImage = async () => {
         if (!settings) return;
         await saveSettings({ solo_game_image_url: null });
+    };
+
+    const handleMopyonUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingMopyon(true);
+
+        try {
+            const url = await uploadImage(file);
+            if (url && settings) {
+                await saveSettings({ mopyon_mascot_url: url });
+            }
+        } finally {
+            setUploadingMopyon(false);
+            if (mopyonFileInputRef.current) mopyonFileInputRef.current.value = '';
+        }
+    };
+
+    const removeMopyonMascot = async () => {
+        if (!settings) return;
+        await saveSettings({ mopyon_mascot_url: null });
     };
 
 
@@ -278,12 +304,84 @@ const AdminSettings: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Mopyon Mascot Section */}
+                <div className="space-y-4 pt-8 border-t border-slate-800">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                        <div>
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Mascotte Mòpyon</h4>
+                            <p className="text-[10px] text-slate-500 font-bold mt-1">Chaje yon modèl .glb pou jwèt Mòpyon an.</p>
+                        </div>
+                        <button
+                            onClick={() => mopyonFileInputRef.current?.click()}
+                            disabled={uploadingMopyon || isSaving}
+                            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl uppercase tracking-widest text-[10px] shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {uploadingMopyon ? (
+                                <><div className="w-4 h-4 border-2 border-white rounded-full animate-spin border-t-transparent" /> Ap moute...</>
+                            ) : (
+                                <>{settings?.mopyon_mascot_url ? 'Chanje Mascotte' : '+ Ajoute Mascotte'}</>
+                            )}
+                        </button>
+                        <input
+                            type="file"
+                            accept=".glb"
+                            ref={mopyonFileInputRef}
+                            onChange={handleMopyonUpload}
+                            className="hidden"
+                        />
+                    </div>
+
+                    <div className="flex gap-4 items-start">
+                        <div className="w-full md:w-1/2 aspect-[2/1] rounded-2xl border-2 border-dashed border-slate-700 bg-slate-800/40 p-4 flex flex-col justify-center items-center relative group">
+                            {settings?.mopyon_mascot_url ? (
+                                <>
+                                    <div className="w-16 h-16 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center text-3xl mb-4">🦊</div>
+                                    <h3 className="text-xl font-black text-white">Mascotte Personnalisée</h3>
+                                    <p className="text-slate-400 text-xs mt-2 text-center break-all">{settings.mopyon_mascot_url.split('/').pop()}</p>
+                                    <div className="absolute top-4 right-4 z-20">
+                                        <button
+                                            onClick={removeMopyonMascot}
+                                            className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-16 h-16 bg-slate-700/50 rounded-2xl flex items-center justify-center text-3xl mb-4 opacity-50">🤖</div>
+                                    <h3 className="text-xl font-black text-slate-500">Mascotte par défaut (Poilu)</h3>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
                 {/* Payment Numbers Section */}
                 <div className="space-y-4 pt-8 border-t border-slate-800">
                     <div className="flex justify-between items-center border-b border-slate-800 pb-4">
                         <div>
-                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Nimewo Pèman Manèl</h4>
-                            <p className="text-[10px] text-slate-500 font-bold mt-1">Chanje nimewo kote jwè yo ka voye kòb la (Depo/Antre).</p>
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Anviwònman avanse jwèt & Pèman</h4>
+                            <p className="text-[10px] text-slate-500 font-bold mt-1">Chanje nimewo kote jwè yo ka voye kòb la ak regleman.</p>
+                        </div>
+                    </div>
+
+                    {/* Checkbox Section */}
+                    <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 space-y-4 mb-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="font-bold text-white uppercase tracking-widest text-sm">Piblisite pou tounen dèyè (Gomoku)</h4>
+                                <p className="text-xs text-slate-500 font-medium mt-1">Pèmèt jwè yo gade yon piblisite pou yo annile dènye kout yo nan Gomoku lè yo pèdi.</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer"
+                                    checked={settings?.allow_gomoku_ad_revive || false}
+                                    onChange={(e) => saveSettings({ allow_gomoku_ad_revive: e.target.checked })}
+                                />
+                                <div className="w-14 h-7 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
                         </div>
                     </div>
 

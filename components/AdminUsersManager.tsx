@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface UserSearchParams {
@@ -12,6 +12,7 @@ export const AdminUsersManager: React.FC = () => {
     const [editingUserId, setEditingUserId] = useState<string | null>(null);
     const [manualAmount, setManualAmount] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
+    const isProcessingRef = useRef(false);
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -78,12 +79,14 @@ export const AdminUsersManager: React.FC = () => {
     };
 
     const handleManualTransaction = async (userId: string, type: 'deposit' | 'withdrawal') => {
+        if (isProcessingRef.current) return;
         const amount = Number(manualAmount);
         if (!amount || amount <= 0) {
             alert("Tanpri mete yon montan valab");
             return;
         }
 
+        isProcessingRef.current = true;
         setIsUpdating(true);
         try {
             // Insert completed transaction, trigger will update wallet and profile balance
@@ -114,6 +117,7 @@ export const AdminUsersManager: React.FC = () => {
             console.error(err);
             alert("Erè lè n ap fè tranzaksyon an: " + err.message);
         } finally {
+            isProcessingRef.current = false;
             setIsUpdating(false);
         }
     };
