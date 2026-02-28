@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, Question, Contest, Wallet, Transaction, SoloSyncData } from './types';
 import QuizCard from './components/QuizCard';
 import GameTimer from './components/GameTimer';
