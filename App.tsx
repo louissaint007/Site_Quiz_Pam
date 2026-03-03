@@ -722,10 +722,10 @@ const App: React.FC = () => {
                   </div>
                 </button>
                 <div className="flex flex-col justify-center ml-1">
-                  <p className="text-yellow-400 font-black text-sm md:text-base leading-none drop-shadow-sm flex items-center gap-1">
-                    {(user?.balance_htg || 0).toLocaleString()} <span className="text-[10px] text-white/70 uppercase">HTG</span>
+                  <p className="text-yellow-400 font-black text-xs md:text-base leading-none drop-shadow-sm flex items-center gap-1">
+                    {(user?.balance_htg || 0).toLocaleString()} <span className="hidden xs:inline text-[10px] text-white/70 uppercase">HTG</span>
                   </p>
-                  <p className={`hidden xs:block text-[8px] md:text-[10px] font-black uppercase tracking-widest leading-none mt-1 ${getPrestigeStyle(user.level || 1).textClass}`}>
+                  <p className={`hidden sm:block text-[8px] md:text-[10px] font-black uppercase tracking-widest leading-none mt-1 ${getPrestigeStyle(user.level || 1).textClass}`}>
                     {user.username.substring(0, 8)} Lvl {user.level}
                   </p>
                 </div>
@@ -737,7 +737,7 @@ const App: React.FC = () => {
             ))}
 
             {session && user?.is_admin && (
-              <button onClick={() => setView('admin')} className="text-[10px] font-black uppercase tracking-widest bg-fuchsia-600 shadow-[0_4px_0_#86198f] active:shadow-none active:translate-y-1 text-white px-2 py-1.5 md:px-4 md:py-2 rounded-xl transition-all ml-2 border border-white/20">
+              <button onClick={() => setView('admin')} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-fuchsia-600 shadow-[0_4px_0_#86198f] active:shadow-none active:translate-y-1 text-white px-2 py-1.5 md:px-4 md:py-2 rounded-xl transition-all ml-1 md:ml-2 border border-white/20">
                 Admin
               </button>
             )}
@@ -751,23 +751,23 @@ const App: React.FC = () => {
         {view === 'landing' && (
           <div className="space-y-24 py-12">
             {/* Hero Section */}
-            <div className="flex flex-col md:flex-row items-center gap-12 animate-in fade-in slide-in-from-bottom duration-700">
-              <div className="flex-1 space-y-8 text-center md:text-left">
+            <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 animate-in fade-in slide-in-from-bottom duration-700">
+              <div className="flex-1 space-y-6 md:space-y-8 text-center md:text-left">
                 <div className="inline-block px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-full">
                   <span className="text-red-500 font-black uppercase text-[10px] tracking-[0.2em]">Pati #1 Ayiti a</span>
                 </div>
-                <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none">
+                <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter leading-none break-words">
                   DEFYE <br />
                   <span className="text-red-500">TÈT OU.</span> <br />
                   GENYEN.
                 </h1>
-                <p className="text-xl text-slate-400 max-w-lg">
+                <p className="text-lg md:text-xl text-slate-400 max-w-lg mx-auto md:mx-0">
                   QuizPam se premye platfòm kilti jeneral an Ayiti ki pèmèt ou teste konesans ou, defye zanmi w, epi genyen prim an lajan kach.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 pt-4 flex-wrap justify-center md:justify-start">
-                  <button onClick={() => setView('home')} className="px-10 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black rounded-[2rem] uppercase text-xs tracking-widest shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:shadow-[0_0_40px_rgba(59,130,246,0.7)] transition-all active:scale-95 border border-white/10">ANTRE NAN JWÈT LA</button>
-                  <button onClick={() => startGame('solo')} className="px-10 py-5 bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md text-white font-black rounded-[2rem] uppercase text-xs tracking-widest border border-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all active:scale-95">PRATIK SOLO</button>
-                  <button onClick={() => setView('mokwaze')} className="px-10 py-5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-black rounded-[2rem] uppercase text-xs tracking-widest shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-all active:scale-95 border border-white/10 flex items-center gap-2">⏱️ MO KWAZE DINAMIK</button>
+                <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 pt-4 md:justify-start">
+                  <button onClick={() => setView('home')} className="px-6 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black rounded-[2rem] uppercase text-[10px] sm:text-xs tracking-widest shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:shadow-[0_0_40px_rgba(59,130,246,0.7)] transition-all active:scale-95 border border-white/10 w-full sm:w-auto">ANTRE NAN JWÈT LA</button>
+                  <button onClick={() => startGame('solo')} className="px-6 py-4 sm:px-10 sm:py-5 bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md text-white font-black rounded-[2rem] uppercase text-[10px] sm:text-xs tracking-widest border border-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all active:scale-95 w-full sm:w-auto">PRATIK SOLO</button>
+                  <button onClick={() => setView('mokwaze')} className="px-6 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-black rounded-[2rem] uppercase text-[10px] sm:text-xs tracking-widest shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-all active:scale-95 border border-white/10 flex items-center justify-center gap-2 w-full sm:w-auto">⏱️ MO KWAZE DINAMIK</button>
                 </div>
               </div>
               <div className="flex-1 relative">
@@ -922,12 +922,12 @@ const App: React.FC = () => {
               </div>
             )}
 
-            <div className="text-center space-y-4">
-              <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase mb-4 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">Lobby <span className="text-red-500">Jwèt Yo</span></h1>
-              <p className="text-lg text-slate-400 max-w-md mx-auto">Chwazi yon konkou oswa antrene tèt ou an Solo.</p>
+            <div className="text-center space-y-4 px-2">
+              <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter uppercase mb-4 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">Lobby <span className="text-red-500">Jwèt Yo</span></h1>
+              <p className="text-base sm:text-lg text-slate-400 max-w-md mx-auto">Chwazi yon konkou oswa antrene tèt ou an Solo.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 px-2 md:px-0">
               <div
                 className={`bg-slate-800/80 rounded-[2.5rem] border-2 border-slate-700 p-8 flex flex-col justify-between group hover:border-blue-500/50 shadow-lg cursor-pointer transition-all relative overflow-hidden`}
                 onClick={() => startGame('solo')}

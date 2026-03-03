@@ -140,7 +140,7 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
                         animate={{ x: 0 }}
                         exit={{ x: '-100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed top-0 left-0 bottom-0 w-80 bg-slate-900 border-r-2 border-slate-700 z-50 flex flex-col shadow-2xl"
+                        className="fixed top-0 left-0 bottom-0 w-[85vw] max-w-[320px] sm:w-80 bg-slate-900 border-r-2 border-slate-700 z-50 flex flex-col shadow-2xl"
                     >
                         <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900 sticky top-0 z-10">
                             <h2 className="text-xl font-black uppercase tracking-widest text-white flex items-center gap-2">
