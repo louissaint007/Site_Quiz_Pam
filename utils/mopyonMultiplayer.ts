@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { MopyonMatch, OnlinePlayer, MopyonMessage } from '../types';
+import { MopyonMatch, OnlinePlayer, MopyonMessage, MopyonInvite } from '../types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 // Global Lobby Channel for matchmaking and presence
@@ -231,4 +231,42 @@ export const subscribeToMopyonMessages = (matchId: string, onNewMessage: (msg: M
     return () => {
         supabase.removeChannel(channel);
     };
+}
+
+// ----------------- INVITATIONS FLOW --------------------
+
+export const sendMopyonInvite = async (senderId: string, receiverId: string, matchId: string) => {
+    const { error } = await supabase
+        .from('mopyon_invites')
+        .insert([{ sender_id: senderId, receiver_id: receiverId, match_id: matchId }]);
+
+    if (error) {
+        console.error("Error sending invite", error);
+        return false;
+    }
+    return true;
+}
+
+export const getPendingInvites = async (userId: string): Promise<MopyonInvite[]> => {
+    const { data, error } = await supabase
+        .from('mopyon_invites')
+        .select('*, sender:profiles!sender_id(username, avatar_url)')
+        .eq('receiver_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching invites", error);
+        return [];
+    }
+    return data as MopyonInvite[];
+}
+
+export const respondToInvite = async (inviteId: string, status: 'accepted' | 'declined') => {
+    const { error } = await supabase
+        .from('mopyon_invites')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', inviteId);
+
+    return !error;
 }

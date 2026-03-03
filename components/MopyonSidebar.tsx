@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { MopyonMatch, OnlinePlayer, MopyonMessage, UserProfile } from '../types';
-import { sendChallenge, getMopyonMessages } from '../utils/mopyonMultiplayer';
+import { MopyonMatch, OnlinePlayer, MopyonMessage, UserProfile, MopyonInvite } from '../types';
+import { sendChallenge, getMopyonMessages, sendMopyonInvite, getPendingInvites, respondToInvite } from '../utils/mopyonMultiplayer';
+
+const TabButton = ({ active, onClick, icon, text, badge }: { active: boolean, onClick: () => void, icon: string, text: string, badge?: number }) => (
+    <button
+        onClick={onClick}
+        className={`flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition flex flex-col items-center gap-1 relative ${active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'}`}
+    >
+        <span className="text-xl">{icon}</span>
+        {text}
+        {badge ? (
+            <span className="absolute top-1 right-2 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                {badge}
+            </span>
+        ) : null}
+    </button>
+);
 
 interface MopyonSidebarProps {
     isOpen: boolean;
@@ -14,7 +29,7 @@ interface MopyonSidebarProps {
 }
 
 export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, userProfile, currentMatchId, onCreateRoom, onlinePlayers }) => {
-    const [activeTab, setActiveTab] = useState<'share' | 'search' | 'history'>('share');
+    const [activeTab, setActiveTab] = useState<'share' | 'search' | 'history' | 'inbox'>('share');
 
     // Share Tab
     const [inviteLink, setInviteLink] = useState('');
@@ -33,6 +48,41 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
     const [selectedChatMatchId, setSelectedChatMatchId] = useState<string | null>(null);
     const [chatHistoryMessages, setChatHistoryMessages] = useState<MopyonMessage[]>([]);
     const [isLoadingChat, setIsLoadingChat] = useState(false);
+
+    // Invites
+    const [pendingInvites, setPendingInvites] = useState<MopyonInvite[]>([]);
+    const [loadingInvites, setLoadingInvites] = useState(false);
+
+    const loadInvites = async () => {
+        setLoadingInvites(true);
+        const invites = await getPendingInvites(userProfile.id);
+        setPendingInvites(invites);
+        setLoadingInvites(false);
+    }
+
+    useEffect(() => {
+        if (isOpen) {
+            loadInvites();
+        }
+    }, [isOpen]);
+
+    const handleAcceptInvite = async (invite: MopyonInvite) => {
+        await respondToInvite(invite.id, 'accepted');
+        // Close sidebar and change URL to join room
+        onClose();
+        const url = new URL(window.location.href);
+        url.searchParams.set('room', invite.match_id);
+        window.history.pushState({}, '', url.toString());
+        // A full reload or event might be needed depending on App architecture, 
+        // but App.tsx checks ?room on mount so we can rely on that if we force reload,
+        // OR we just dispatch an event. 
+        window.location.reload();
+    }
+
+    const handleDeclineInvite = async (invite: MopyonInvite) => {
+        await respondToInvite(invite.id, 'declined');
+        loadInvites(); // Refresh list
+    }
 
     const generateLink = async () => {
         let matchId = currentMatchId;
@@ -111,7 +161,8 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
             matchId = await onCreateRoom();
             if (!matchId) return;
         }
-        sendChallenge(userProfile.id, opponentId, matchId);
+        sendChallenge(userProfile.id, opponentId, matchId); // Broadcast (Legacy/Immediate)
+        await sendMopyonInvite(userProfile.id, opponentId, matchId); // DB Persisted
         alert("Envitasyon an ale! Nap tann jwè an...");
     }
 
@@ -155,6 +206,7 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
                             <TabButton active={activeTab === 'share'} onClick={() => setActiveTab('share')} icon="🔗" text="Pataje" />
                             <TabButton active={activeTab === 'search'} onClick={() => setActiveTab('search')} icon="🔍" text="Rechèch" />
                             <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon="⏱️" text="Istorik" />
+                            <TabButton active={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} icon="📬" text="Mesaj" badge={pendingInvites.length} />
                         </div>
 
                         <div className="p-6 overflow-y-auto flex-1 h-full scrollbar-thin scrollbar-thumb-slate-700">
@@ -293,6 +345,58 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
                                     )}
                                 </div>
                             )}
+
+                            {/* INBOX TAB */}
+                            {activeTab === 'inbox' && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                                    <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Mesaj ak Envitasyon</h3>
+
+                                    <button onClick={loadInvites} className="w-full mb-4 bg-slate-800 hover:bg-slate-700 text-xs text-white p-2 rounded-xl flex items-center justify-center gap-2">
+                                        <span>🔄</span> Rafrechi
+                                    </button>
+
+                                    {loadingInvites ? (
+                                        <div className="text-center py-8 text-slate-500"><div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>Chaje...</div>
+                                    ) : pendingInvites.length > 0 ? (
+                                        pendingInvites.map(invite => (
+                                            <div key={invite.id} className="bg-slate-800 p-3 rounded-xl border border-indigo-500/30 flex flex-col gap-3 group">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative">
+                                                        {invite.sender?.avatar_url ? (
+                                                            <img src={invite.sender.avatar_url} className="w-10 h-10 rounded-lg object-cover" />
+                                                        ) : (
+                                                            <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center text-lg">👤</div>
+                                                        )}
+                                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-slate-800 flex items-center justify-center text-[8px] text-white">1</div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-sm font-bold text-white truncate max-w-[150px]">{invite.sender?.username}</div>
+                                                        <div className="text-[10px] text-indigo-400 font-black uppercase">Ap envite w jwe!</div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleAcceptInvite(invite)}
+                                                        className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-white text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center transition gap-2"
+                                                    >
+                                                        ✅ Aksepte
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeclineInvite(invite)}
+                                                        className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center transition gap-2"
+                                                    >
+                                                        ❌ Refize
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center text-slate-500 text-xs py-10 border-2 border-dashed border-slate-800 rounded-xl">
+                                            Ou pa gen okenn envitasyon kounye a.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 </>
@@ -345,14 +449,3 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
     );
 };
 
-// Sub-component for tabs
-const TabButton = ({ active, onClick, icon, text }: { active: boolean, onClick: () => void, icon: string, text: string }) => (
-    <button
-        onClick={onClick}
-        className={`flex-1 py-3 text-xs font-black uppercase tracking-widest transition-all rounded-t-xl border-b-2 flex flex-col items-center gap-1 ${active ? 'border-indigo-500 text-indigo-400 bg-slate-800/50' : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'
-            }`}
-    >
-        <span className="text-lg">{icon}</span>
-        {text}
-    </button>
-);

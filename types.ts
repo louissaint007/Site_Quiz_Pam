@@ -247,3 +247,17 @@ export interface MopyonMessage {
     avatar_url: string | null;
   };
 }
+
+export interface MopyonInvite {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  match_id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  sender?: {
+    username: string;
+    avatar_url: string | null;
+  };
+}
+
