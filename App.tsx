@@ -78,7 +78,7 @@ const App: React.FC = () => {
     const room = urlParams.get('room');
     if (room) {
       setMopyonRoomId(room);
-      setView('gomoku');
+      // We don't setView yet, we wait for Auth to figure out if they exist or need a guest profile
     }
   }, []);
 
@@ -375,11 +375,34 @@ const App: React.FC = () => {
           console.log("[INIT] Step 2: Fetching user data AND contests (background)...");
           // Fire and forget (don't await) so UI can show up immediately
           fetchContests().catch(e => console.error("fetchContests error:", e));
-          fetchUserAndWallet(currentSession.user.id, currentSession).catch(e => console.error("fetchUserAndWallet error:", e));
+          fetchUserAndWallet(currentSession.user.id, currentSession).then(() => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const room = urlParams.get('room');
+            if (room) {
+              setMopyonRoomId(room);
+              setView('gomoku');
+            }
+          }).catch(e => console.error("fetchUserAndWallet error:", e));
           syncPending().catch(e => console.error("syncPending error:", e));
         } else {
           console.log("[INIT] Step 2: Fetching contests (Guest, background)...");
           fetchContests().catch(e => console.error("fetchContests error:", e));
+
+          const urlParams = new URLSearchParams(window.location.search);
+          const room = urlParams.get('room');
+          if (room) {
+            // Unauthenticated user opening a Mòpyon link. Create a guest profile!
+            const guestId = `guest-${crypto.randomUUID()}`;
+            setUser({
+              id: guestId,
+              username: `Envite_${guestId.substring(6, 10)}`,
+              level: 1,
+              xp: 0,
+              balance_htg: 0
+            } as any);
+            setMopyonRoomId(room);
+            setView('gomoku');
+          }
         }
 
       } catch (err: any) {
@@ -414,9 +437,12 @@ const App: React.FC = () => {
           fetchUserAndWallet(currentSession.user.id, currentSession).catch(e => console.error("AuthChange fetch error:", e));
         }
       } else {
-        setUser(null);
-        setWallet(null);
-        setTransactions([]);
+        // Only clear if we aren't a guest in a game
+        if (!user?.id.startsWith('guest-')) {
+          setUser(null);
+          setWallet(null);
+          setTransactions([]);
+        }
       }
 
       // Always ensure loading is false on major auth events

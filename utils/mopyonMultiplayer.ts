@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { MopyonMatch, OnlinePlayer } from '../types';
+import { MopyonMatch, OnlinePlayer, MopyonMessage } from '../types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 // Global Lobby Channel for matchmaking and presence
@@ -178,4 +178,57 @@ export const sendChallenge = (challengerId: string, targetId: string, matchId: s
             payload: { challengerId, targetId, matchId }
         });
     }
+}
+
+// ----------------- CHAT FLOW --------------------
+
+export const sendMopyonMessage = async (matchId: string, senderId: string, content: string) => {
+    const { error } = await supabase
+        .from('mopyon_messages')
+        .insert([{ match_id: matchId, sender_id: senderId, content }]);
+
+    if (error) {
+        console.error("Error sending message", error);
+        return false;
+    }
+    return true;
+}
+
+export const getMopyonMessages = async (matchId: string): Promise<MopyonMessage[]> => {
+    const { data, error } = await supabase
+        .from('mopyon_messages')
+        .select(`*, profiles(username, avatar_url)`)
+        .eq('match_id', matchId)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error("Error fetching messages", error);
+        return [];
+    }
+    return data as MopyonMessage[];
+}
+
+export const subscribeToMopyonMessages = (matchId: string, onNewMessage: (msg: MopyonMessage) => void) => {
+    const channel = supabase.channel(`mopyon_chat_${matchId}`);
+
+    channel
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mopyon_messages', filter: `match_id=eq.${matchId}` }, async (payload) => {
+            // Need to fetch user info for the new message
+            const { data } = await supabase
+                .from('profiles')
+                .select('username, avatar_url')
+                .eq('id', payload.new.sender_id)
+                .single();
+
+            const msg: MopyonMessage = {
+                ...payload.new as MopyonMessage,
+                profiles: data || undefined
+            };
+            onNewMessage(msg);
+        })
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
 }

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { UserProfile, MopyonMatch } from '../types';
-import { sendChallenge } from '../utils/mopyonMultiplayer';
+import { MopyonMatch, OnlinePlayer, MopyonMessage, UserProfile } from '../types';
+import { sendChallenge, getMopyonMessages } from '../utils/mopyonMultiplayer';
 
 interface MopyonSidebarProps {
     isOpen: boolean;
@@ -28,6 +28,11 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
     // History Tab
     const [history, setHistory] = useState<MopyonMatch[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
+
+    // Chat History Modal
+    const [selectedChatMatchId, setSelectedChatMatchId] = useState<string | null>(null);
+    const [chatHistoryMessages, setChatHistoryMessages] = useState<MopyonMessage[]>([]);
+    const [isLoadingChat, setIsLoadingChat] = useState(false);
 
     const generateLink = async () => {
         let matchId = currentMatchId;
@@ -108,6 +113,14 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
         }
         sendChallenge(userProfile.id, opponentId, matchId);
         alert("Envitasyon an ale! Nap tann jwè an...");
+    }
+
+    const loadChatHistory = async (matchId: string) => {
+        setSelectedChatMatchId(matchId);
+        setIsLoadingChat(true);
+        const messages = await getMopyonMessages(matchId);
+        setChatHistoryMessages(messages);
+        setIsLoadingChat(false);
     }
 
     return (
@@ -250,18 +263,26 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
                                                 <div key={match.id} className="bg-slate-800 p-3 rounded-xl border-l-4 border-slate-700 flex flex-col gap-3 group"
                                                     style={{ borderLeftColor: didIWin ? '#22c55e' : isDraw ? '#64748b' : '#ef4444' }}
                                                 >
-                                                    <div className="flex justify-between items-center">
+                                                    <div className="flex justify-between items-center bg-slate-900/50 p-1.5 rounded-lg border border-slate-700/50">
                                                         <div className="text-xs font-bold text-slate-300">vs <span className="text-white">{opponentName}</span></div>
-                                                        <div className={`text-[10px] font-black px-2 py-1 rounded bg-slate-900 ${didIWin ? 'text-green-400' : isDraw ? 'text-slate-400' : 'text-red-400'}`}>
+                                                        <div className={`text-[10px] font-black px-2 py-1 rounded bg-slate-800 ${didIWin ? 'text-green-400' : isDraw ? 'text-slate-400' : 'text-red-400'}`}>
                                                             {didIWin ? 'VIKTWA' : isDraw ? 'NIL' : 'DÉFAITE'}
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        onClick={() => handleChallenge(opponentId)}
-                                                        className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center transition gap-2"
-                                                    >
-                                                        <span>⚔️</span> Revanche
-                                                    </button>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleChallenge(opponentId)}
+                                                            className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center transition gap-2"
+                                                        >
+                                                            <span>⚔️</span> Revanche
+                                                        </button>
+                                                        <button
+                                                            onClick={() => loadChatHistory(match.id)}
+                                                            className="flex-1 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 border border-indigo-500/30 text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center transition gap-2"
+                                                        >
+                                                            <span>💬</span> Chat
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )
                                         })
@@ -275,6 +296,50 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
                         </div>
                     </motion.div>
                 </>
+            )}
+
+            {/* Chat History Modal (Rendered independently of side panel state if we want, but logically attached) */}
+            {selectedChatMatchId && (
+                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                        animate={{ scale: 1, y: 0, opacity: 1 }}
+                        className="bg-slate-800 border-2 border-slate-700 rounded-2xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl"
+                    >
+                        <div className="p-4 border-b border-slate-700 bg-slate-900 flex justify-between items-center">
+                            <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                <span className="text-indigo-400">💬</span> Istorik Chat
+                            </h3>
+                            <button onClick={() => setSelectedChatMatchId(null)} className="text-slate-400 hover:text-white transition">✕</button>
+                        </div>
+
+                        <div className="p-4 h-64 overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-slate-600">
+                            {isLoadingChat ? (
+                                <div className="text-center py-10 text-slate-500">Ap chaje...</div>
+                            ) : chatHistoryMessages.length === 0 ? (
+                                <div className="text-center py-10 text-slate-500 text-xs italic">Pa te gen okenn chat nan match sa a.</div>
+                            ) : (
+                                chatHistoryMessages.map(msg => {
+                                    const isMe = msg.sender_id === userProfile.id;
+                                    return (
+                                        <div key={msg.id} className={`flex max-w-[90%] gap-2 ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
+                                            <div className="shrink-0 pt-0.5">
+                                                {msg.profiles?.avatar_url ? (
+                                                    <img src={msg.profiles.avatar_url} className="w-5 h-5 rounded-md object-cover" />
+                                                ) : (
+                                                    <div className="w-5 h-5 bg-slate-700 rounded-md flex items-center justify-center text-[10px]">🦊</div>
+                                                )}
+                                            </div>
+                                            <div className={`p-2 rounded-xl text-xs break-words ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-700 text-slate-200 rounded-tl-none'}`}>
+                                                {msg.content}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
             )}
         </AnimatePresence>
     );

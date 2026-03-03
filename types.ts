@@ -235,3 +235,15 @@ export interface OnlinePlayer {
   avatar_url: string | null;
   status: 'online' | 'playing';
 }
+
+export interface MopyonMessage {
+  id: string;
+  match_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  profiles?: {
+    username: string;
+    avatar_url: string | null;
+  };
+}

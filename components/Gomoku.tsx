@@ -9,8 +9,10 @@ import { MopyonSidebar } from './MopyonSidebar';
 import {
   initPresence, updatePresenceStatus, stopPresence,
   createMatch, joinMatch, getMatchStatus, updateMatchState,
-  forfeitMatch, subscribeToMatch, leaveMatchChannel
+  forfeitMatch, subscribeToMatch, leaveMatchChannel,
+  sendMopyonMessage, getMopyonMessages, subscribeToMopyonMessages
 } from '../utils/mopyonMultiplayer';
+import { MopyonMessage } from '../types';
 
 interface GomokuProps {
   user: UserProfile;
@@ -51,7 +53,46 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
   const [amICreator, setAmICreator] = useState(true);
   const disconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Chat States
+  const [chatMessages, setChatMessages] = useState<MopyonMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Ref to hold the current match state since realtime UPDATE only sends changed fields
+  const currentMatchStateRef = useRef<any>(null);
+
   const mySymbol: 'X' | 'O' = amICreator ? 'X' : 'O';
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages]);
+
+  useEffect(() => {
+    if (winner && gameMode === 'multiplayer' && currentMatchId) {
+      // Load existing messages
+      getMopyonMessages(currentMatchId).then(setChatMessages);
+
+      // Subscribe to new messages
+      const unsubscribe = subscribeToMopyonMessages(currentMatchId, (newMsg) => {
+        setChatMessages(prev => [...prev, newMsg]);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [winner, gameMode, currentMatchId]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !currentMatchId || winner !== mySymbol) return;
+
+    // Add optimisticly if we want, but realtime is fast enough
+    await sendMopyonMessage(currentMatchId, user.id, chatInput.trim());
+    setChatInput('');
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -60,6 +101,9 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
       if (data?.mopyon_mascot_url) setMascotUrl(data.mopyon_mascot_url);
     };
     fetchSettings();
+
+    // Guests shouldn't connect to global presence, just local match presence
+    if (user.id.startsWith('guest-')) return;
 
     // Init Global Presence
     const me: OnlinePlayer = { id: user.id, username: user.username, avatar_url: user.avatars_url || null, status: 'online' };
@@ -74,7 +118,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
     });
 
     return () => {
-      stopPresence();
+      if (!user.id.startsWith('guest-')) stopPresence();
     };
   }, [user]);
 
@@ -126,10 +170,16 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
     if (status.joiner_id || (!creator && status.creator_id)) {
       const oppId = creator ? status.joiner_id : status.creator_id;
       if (oppId) {
-        const { data } = await supabase.from('profiles').select('username').eq('id', oppId).single();
-        if (data) setOpponentName(data.username);
+        if (oppId.startsWith('guest-')) {
+          setOpponentName("Envite");
+        } else {
+          const { data } = await supabase.from('profiles').select('username').eq('id', oppId).single();
+          if (data) setOpponentName(data.username);
+        }
       }
     }
+
+    currentMatchStateRef.current = status;
 
     subscribeToMatch(matchId,
       // On Update
@@ -137,21 +187,29 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
         // Clear disconnect timer if any response
         if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
 
-        setBoard(payload.board_state || Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null)));
-        setCurrentPlayer(payload.current_turn === payload.creator_id ? 'X' : 'O');
+        // Merge the old state with the new payload changes, because realtime payload omits unchanged fields
+        currentMatchStateRef.current = { ...currentMatchStateRef.current, ...payload };
+        const updatedState = currentMatchStateRef.current;
 
-        if (payload.status === 'in_progress' && multiStatus === 'waiting') {
+        setBoard(updatedState.board_state || Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null)));
+        setCurrentPlayer(updatedState.current_turn === updatedState.creator_id ? 'X' : 'O');
+
+        if (updatedState.status === 'in_progress' && multiStatus === 'waiting') {
           setMultiStatus('in_progress');
           setGameState3D('idle');
           // we are creator, someone joined. get their name
-          if (payload.joiner_id) {
-            const { data } = await supabase.from('profiles').select('username').eq('id', payload.joiner_id).single();
-            if (data) setOpponentName(data.username);
+          if (updatedState.joiner_id) {
+            if (updatedState.joiner_id.startsWith('guest-')) {
+              setOpponentName("Envite");
+            } else {
+              const { data } = await supabase.from('profiles').select('username').eq('id', updatedState.joiner_id).single();
+              if (data) setOpponentName(data.username);
+            }
           }
         }
 
-        if (payload.status === 'abandoned') {
-          if (payload.winner_id === user.id) {
+        if (updatedState.status === 'abandoned') {
+          if (updatedState.winner_id === user.id) {
             setWinner(mySymbol);
             setGameState3D('win');
             setMultiStatus('disconnected');
@@ -326,6 +384,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
   };
 
   const saveMatchResult = async (winningPlayer: 'X' | 'O') => {
+    if (user.id.startsWith('guest-')) return; // Guests don't get XP
     try {
       if (winningPlayer === 'X' || (gameMode === 'multiplayer' && winningPlayer === mySymbol)) {
         const newXp = (user.xp || 0) + 50;
@@ -529,6 +588,67 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                   </p>
                 )}
 
+                {/* Post-Match Chat Section */}
+                {gameMode === 'multiplayer' && (
+                  <div className="bg-slate-800 rounded-2xl mb-6 overflow-hidden flex flex-col border border-slate-700 max-h-48 shadow-inner relative">
+                    <div className="p-2 border-b border-slate-700 bg-slate-900/50">
+                      <span className="text-[10px] font-black uppercase text-indigo-400 flex items-center gap-1 justify-center">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Chat Match La
+                      </span>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-slate-600">
+                      {chatMessages.length === 0 ? (
+                        <div className="text-xs text-slate-500 text-center py-4 italic">
+                          Pa gen mesaj... {winner === mySymbol ? "Voye youn bay pèdan an!" : ""}
+                        </div>
+                      ) : (
+                        chatMessages.map(msg => {
+                          const isMe = msg.sender_id === user.id;
+                          return (
+                            <div key={msg.id} className={`flex max-w-[90%] gap-2 ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
+                              {/* Avatar */}
+                              <div className="shrink-0 pt-0.5">
+                                {msg.profiles?.avatar_url ? (
+                                  <img src={msg.profiles.avatar_url} className="w-5 h-5 rounded-md object-cover" />
+                                ) : (
+                                  <div className="w-5 h-5 bg-slate-700 rounded-md flex items-center justify-center text-[10px]">🦊</div>
+                                )}
+                              </div>
+                              {/* Bubble */}
+                              <div className={`p-2 rounded-xl text-xs break-words ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-700 text-slate-200 rounded-tl-none'}`}>
+                                {msg.content}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+
+                    <div className="p-2 bg-slate-900 border-t border-slate-700">
+                      {winner === mySymbol ? (
+                        <form onSubmit={handleSendMessage} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={chatInput}
+                            onChange={e => setChatInput(e.target.value)}
+                            placeholder="Voye yon mesaj..."
+                            className="flex-1 bg-slate-800 border focus:border-indigo-500 border-slate-700 outline-none text-white text-xs px-3 py-2 rounded-lg"
+                          />
+                          <button type="submit" disabled={!chatInput.trim()} className="bg-indigo-500 disabled:opacity-50 text-white px-3 py-1 rounded-lg text-xs font-black">
+                            {'>'}
+                          </button>
+                        </form>
+                      ) : (
+                        <div className="text-[10px] text-slate-500 text-center px-2 py-1 font-bold">
+                          ⚠️ Ou dwe genyen yon match pou w ka voye mesaj.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Ad Revive Button: Only show if allowed, it's PvE, and the user lost (O won) */}
                 {allowAdRevive && gameMode === 'pve' && winner === 'O' && boardHistory.length >= 2 && (
                   <button
@@ -540,29 +660,40 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                 )}
 
                 <div className="flex flex-col space-y-3">
-                  <button
-                    onClick={resetGame}
-                    className="w-full bg-green-500 text-white font-black py-4 rounded-2xl uppercase tracking-widest border-b-4 border-green-700 active:translate-y-1 active:border-b-0 hover:bg-green-400 transition-all shadow-lg text-lg"
-                  >
-                    {gameMode === 'multiplayer' ? 'Tounen nan Mòd Multiplayer' : 'Rejwe Menm Mòd'}
-                  </button>
-                  <div className="flex space-x-3">
+                  {user.id.startsWith('guest-') ? (
                     <button
-                      onClick={() => {
-                        resetGame();
-                        setGameMode(null);
-                      }}
-                      className="flex-1 bg-blue-500 text-white font-black py-3 rounded-2xl uppercase tracking-widest border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 hover:bg-blue-400 transition-all shadow-md text-xs"
+                      onClick={() => onExit()}
+                      className="w-full bg-blue-500 text-white font-black py-4 rounded-2xl uppercase tracking-widest border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 hover:bg-blue-400 transition-all shadow-lg text-lg animate-pulse"
                     >
-                      Lòt Mòd
+                      Konekte pou w Sove Pwen w yo!
                     </button>
-                    <button
-                      onClick={() => { updatePresenceStatus('online'); onExit(); }}
-                      className="flex-1 bg-slate-800 text-white font-black py-3 rounded-2xl uppercase tracking-widest border-b-4 border-slate-900 active:translate-y-1 active:border-b-0 hover:bg-slate-700 transition-all shadow-md text-xs"
-                    >
-                      Soti
-                    </button>
-                  </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={resetGame}
+                        className="w-full bg-green-500 text-white font-black py-4 rounded-2xl uppercase tracking-widest border-b-4 border-green-700 active:translate-y-1 active:border-b-0 hover:bg-green-400 transition-all shadow-lg text-lg"
+                      >
+                        {gameMode === 'multiplayer' ? 'Tounen nan Mòd Multiplayer' : 'Rejwe Menm Mòd'}
+                      </button>
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={() => {
+                            resetGame();
+                            setGameMode(null);
+                          }}
+                          className="flex-1 bg-blue-500 text-white font-black py-3 rounded-2xl uppercase tracking-widest border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 hover:bg-blue-400 transition-all shadow-md text-xs"
+                        >
+                          Lòt Mòd
+                        </button>
+                        <button
+                          onClick={() => { updatePresenceStatus('online'); onExit(); }}
+                          className="flex-1 bg-slate-800 text-white font-black py-3 rounded-2xl uppercase tracking-widest border-b-4 border-slate-900 active:translate-y-1 active:border-b-0 hover:bg-slate-700 transition-all shadow-md text-xs"
+                        >
+                          Soti
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </motion.div>
             </div>
