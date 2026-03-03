@@ -860,6 +860,7 @@ const App: React.FC = () => {
             }}
             onDeposit={(amount) => redirectToMonCash(amount, 'deposit')}
             onWithdraw={handleMonCashWithdrawal}
+            onLogout={handleLogout}
           />
         )}
         {view === 'contest-detail' && selectedContest && (

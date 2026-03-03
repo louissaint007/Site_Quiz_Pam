@@ -11,9 +11,10 @@ interface ProfileViewProps {
   onBack: () => void;
   onDeposit: (amount: number) => void;
   onWithdraw: (amount: number, phone: string) => void;
+  onLogout: () => void;
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ user, wallet, transactions, onBack, onDeposit, onWithdraw }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ user, wallet, transactions, onBack, onDeposit, onWithdraw, onLogout }) => {
   const [showCelebration, setShowCelebration] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const [isEditingUsername, setIsEditingUsername] = React.useState(false);
@@ -127,7 +128,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, wallet, transactions, o
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         </button>
         <h1 className="text-xl font-black uppercase tracking-[0.3em] text-white">Profil Pam</h1>
-        <div className="w-12 h-12"></div> {/* Spacer */}
+        <button onClick={onLogout} className="p-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-2xl transition-all border border-red-500/20" title="Dekonekte">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
