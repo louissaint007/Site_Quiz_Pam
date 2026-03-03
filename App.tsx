@@ -402,12 +402,15 @@ const App: React.FC = () => {
             } as any);
             setMopyonRoomId(room);
             setView('gomoku');
+          } else {
+            // Let the default init hide loading
           }
         }
 
       } catch (err: any) {
         console.error("[INIT] Global initialization error:", err);
-        setIsLoading(false); // Fail-safe
+      } finally {
+        setIsLoading(false); // Ensure loading is always false after init auth
       }
     };
 

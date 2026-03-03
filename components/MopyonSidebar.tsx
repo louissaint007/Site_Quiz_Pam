@@ -70,15 +70,15 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
     const searchPlayers = async () => {
         if (!searchQuery.trim()) return;
         setIsSearching(true);
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('id, username, avatar_url, level')
-            .ilike('username', `%${searchQuery}%`)
-            .neq('id', userProfile.id)
-            .limit(10);
+        const { data, error } = await supabase.rpc('search_players', {
+            search_query: searchQuery,
+            current_user_id: userProfile.id
+        });
 
         if (!error && data) {
             setSearchResults(data);
+        } else if (error) {
+            console.error("Erè nan rechèch jwè:", error);
         }
         setIsSearching(false);
     }
