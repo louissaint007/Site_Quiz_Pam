@@ -402,10 +402,32 @@ const App: React.FC = () => {
 
           const urlParams = new URLSearchParams(window.location.search);
           const room = urlParams.get('room');
+
           if (room) {
-            // Unauthenticated user opening a Mòpyon link. Redirect to login.
+            // Create a temporary guest session using a valid UUID
+            const guestId = crypto.randomUUID();
+            const guestUsername = "Envite_" + Math.floor(Math.random() * 10000);
+
+            // Attempt to insert profile (may fail if RLS blocks, but we try anyway)
+            supabase.from('profiles').insert({ id: guestId, username: guestUsername, xp: 0, level: 1 })
+              .catch(err => console.log("Guest profile insert error:", err));
+
+            const guestUser: UserProfile = {
+              id: guestId,
+              username: guestUsername,
+              email: "guest@quizpam.com",
+              solo_level: 1,
+              level: 1,
+              xp: 0,
+              honorary_title: "Envite",
+              last_level_notified: 1,
+              is_admin: false,
+              balance_htg: 0
+            };
+
+            setUser(guestUser);
             setMopyonRoomId(room);
-            setView('auth');
+            setView('gomoku');
           } else {
             // Let the default init hide loading
           }
@@ -445,7 +467,7 @@ const App: React.FC = () => {
         }
       } else {
         // Only clear if we aren't a guest in a game
-        if (!user?.id.startsWith('guest-')) {
+        if (!user?.username.startsWith('Envite_')) {
           setUser(null);
           setWallet(null);
           setTransactions([]);

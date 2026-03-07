@@ -103,7 +103,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
     fetchSettings();
 
     // Guests shouldn't connect to global presence, just local match presence
-    if (user.id.startsWith('guest-')) return;
+    if (user.username?.startsWith('Envite_')) return;
 
     // Init Global Presence
     const me: OnlinePlayer = { id: user.id, username: user.username, avatar_url: user.avatars_url || null, status: 'online' };
@@ -118,7 +118,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
     });
 
     return () => {
-      if (!user.id.startsWith('guest-')) stopPresence();
+      if (!user.username?.startsWith('Envite_')) stopPresence();
     };
   }, [user]);
 
@@ -170,12 +170,9 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
     if (status.joiner_id || (!creator && status.creator_id)) {
       const oppId = creator ? status.joiner_id : status.creator_id;
       if (oppId) {
-        if (oppId.startsWith('guest-')) {
-          setOpponentName("Envite");
-        } else {
-          const { data } = await supabase.from('profiles').select('username').eq('id', oppId).single();
-          if (data) setOpponentName(data.username);
-        }
+        const { data } = await supabase.from('profiles').select('username').eq('id', oppId).single();
+        if (data) setOpponentName(data.username);
+        else setOpponentName("Envite");
       }
     }
 
@@ -203,13 +200,10 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
             setGameState3D('idle');
             // we are creator, someone joined. get their name
             if (updatedState.joiner_id) {
-              if (updatedState.joiner_id.startsWith('guest-')) {
-                setOpponentName("Envite");
-              } else {
-                supabase.from('profiles').select('username').eq('id', updatedState.joiner_id).single().then(({ data }) => {
-                  if (data) setOpponentName(data.username);
-                });
-              }
+              supabase.from('profiles').select('username').eq('id', updatedState.joiner_id).single().then(({ data }) => {
+                if (data) setOpponentName(data.username);
+                else setOpponentName("Envite");
+              });
             }
           }
           setMultiStatus('in_progress');
@@ -344,15 +338,24 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
     const nextPlayer = currentPlayer === 'X' ? 'O' : 'X';
 
     if (winLine) {
-      setWinner(currentPlayer);
-      setWinningLine(winLine);
-      setScores(prev => ({ ...prev, [currentPlayer]: prev[currentPlayer] + 1 }));
-      setGameState3D(currentPlayer === mySymbol && gameMode === 'multiplayer' ? 'win' : 'lose');
-      if (gameMode !== 'multiplayer') setGameState3D('win'); // Standard win screen for local
+      if (gameMode !== 'multiplayer') {
+        // Local Play Logic
+        setWinner(currentPlayer);
+        setWinningLine(winLine);
+        setScores(prev => ({ ...prev, [currentPlayer]: prev[currentPlayer] + 1 }));
+        setGameState3D('win');
+      } else {
+        // Multiplayer logic: Let the realtime event from the winner's update trigger the win/loss screen
+        // so both clients have synchronized state evaluations.
+        // We do not set the local 'winner' here yet.
+        setWinningLine(winLine);
+      }
       saveMatchResult(currentPlayer);
     } else if (isDraw) {
-      setWinner('draw');
-      setGameState3D('lose');
+      if (gameMode !== 'multiplayer') {
+        setWinner('draw');
+        setGameState3D('lose');
+      }
     } else {
       setCurrentPlayer(nextPlayer);
     }
@@ -401,7 +404,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
   };
 
   const saveMatchResult = async (winningPlayer: 'X' | 'O') => {
-    if (user.id.startsWith('guest-')) return; // Guests don't get XP
+    if (user.username?.startsWith('Envite_')) return; // Guests don't get XP
     try {
       if (winningPlayer === 'X' || (gameMode === 'multiplayer' && winningPlayer === mySymbol)) {
         const newXp = (user.xp || 0) + 50;
@@ -676,7 +679,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                 )}
 
                 <div className="flex flex-col space-y-3">
-                  {user.id.startsWith('guest-') ? (
+                  {user.username?.startsWith('Envite_') ? (
                     <button
                       onClick={() => onExit()}
                       className="w-full bg-blue-500 text-white font-black py-3 lg:py-4 rounded-xl lg:rounded-2xl uppercase tracking-widest border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 hover:bg-blue-400 transition-all shadow-lg text-sm lg:text-lg animate-pulse"
