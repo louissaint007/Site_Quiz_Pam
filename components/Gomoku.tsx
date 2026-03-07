@@ -452,17 +452,16 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
         onlinePlayers={onlinePlayers}
       />
 
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] max-w-7xl mx-auto gap-8 p-4">
+      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)] lg:h-[calc(100vh-80px)] max-w-7xl mx-auto gap-4 lg:gap-8 p-2 sm:p-4 lg:overflow-hidden">
 
-        {/* HUD & 3D Mascot Panel (Left Side) */}
-        <div className="lg:w-1/3 flex flex-col gap-6 bg-slate-50 rounded-[2.5rem] border-4 border-slate-900 shadow-[8px_8px_0_0_rgba(15,23,42,1)] p-6 overflow-hidden relative">
-          <div className="flex justify-between items-center bg-slate-200/50 p-4 rounded-3xl border-2 border-slate-800/20">
+        <div className="lg:w-1/3 flex flex-col gap-4 lg:gap-6 bg-slate-50 rounded-[2rem] lg:rounded-[2.5rem] border-4 border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)] lg:shadow-[8px_8px_0_0_rgba(15,23,42,1)] p-4 lg:p-6 overflow-y-auto lg:overflow-hidden relative flex-shrink-0 lg:max-h-full">
+          <div className="flex justify-between items-center bg-slate-200/50 p-2 lg:p-4 rounded-2xl lg:rounded-3xl border-2 border-slate-800/20">
             <button
               onClick={() => {
                 updatePresenceStatus('online');
                 onExit();
               }}
-              className="bg-slate-900 text-slate-50 px-4 py-2 rounded-2xl font-black uppercase tracking-widest text-xs border-b-4 border-slate-950 active:translate-y-1 active:border-b-0 hover:bg-slate-800 transition-all"
+              className="bg-slate-900 text-slate-50 px-3 py-1.5 lg:px-4 lg:py-2 rounded-xl lg:rounded-2xl font-black uppercase tracking-widest text-[10px] lg:text-xs border-b-2 lg:border-b-4 border-slate-950 active:translate-y-1 active:border-b-0 hover:bg-slate-800 transition-all z-20"
             >
               ← Retounen
             </button>
@@ -519,7 +518,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
           )}
 
           {/* Mascot Canvas */}
-          <div className="flex-1 min-h-[250px] relative bg-slate-100/50 rounded-3xl border-2 border-slate-900/10 inner-shadow">
+          <div className="flex-[0.5] lg:flex-1 min-h-[150px] lg:min-h-[200px] relative bg-slate-100/50 rounded-2xl lg:rounded-3xl border-2 border-slate-900/10 inner-shadow">
             {xpRewardToast && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.9 }}
@@ -576,14 +575,14 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
           </div>
 
           {winner && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 overflow-y-auto">
               <motion.div
                 initial={{ scale: 0.9, y: 20, opacity: 0 }}
                 animate={{ scale: 1, y: 0, opacity: 1 }}
-                className="bg-slate-100 rounded-3xl border-4 border-slate-800 p-6 md:p-8 text-center shadow-[0_8px_0_0_rgba(15,23,42,1)] max-w-sm w-full"
+                className="bg-slate-100 rounded-[2rem] lg:rounded-3xl border-4 border-slate-800 p-4 sm:p-6 md:p-8 text-center shadow-[0_4px_0_0_rgba(15,23,42,1)] lg:shadow-[0_8px_0_0_rgba(15,23,42,1)] max-w-sm w-full my-auto"
               >
-                <div className="w-20 h-20 mx-auto bg-slate-200 rounded-full flex items-center justify-center mb-6 border-4 border-slate-800 shadow-inner">
-                  <span className="text-4xl">{winner === 'draw' ? '🤝' : '🏆'}</span>
+                <div className="w-16 h-16 lg:w-20 lg:h-20 mx-auto bg-slate-200 rounded-full flex items-center justify-center mb-4 lg:mb-6 border-4 border-slate-800 shadow-inner">
+                  <span className="text-3xl lg:text-4xl">{winner === 'draw' ? '🤝' : '🏆'}</span>
                 </div>
                 <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">
                   {winner === 'draw' ? 'Match Nul!' : `Jwè ${winner === 'X' ? '1' : '2'} Genyen!`}
@@ -596,8 +595,8 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
 
                 {/* Post-Match Chat Section */}
                 {gameMode === 'multiplayer' && (
-                  <div className="bg-slate-800 rounded-2xl mb-6 overflow-hidden flex flex-col border border-slate-700 max-h-48 shadow-inner relative">
-                    <div className="p-2 border-b border-slate-700 bg-slate-900/50">
+                  <div className="bg-slate-800 rounded-xl lg:rounded-2xl mb-4 lg:mb-6 overflow-hidden flex flex-col border border-slate-700 max-h-32 lg:max-h-48 shadow-inner relative">
+                    <div className="p-1.5 lg:p-2 border-b border-slate-700 bg-slate-900/50">
                       <span className="text-[10px] font-black uppercase text-indigo-400 flex items-center gap-1 justify-center">
                         <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Chat Match La
                       </span>
@@ -659,7 +658,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                 {allowAdRevive && gameMode === 'pve' && winner === 'O' && boardHistory.length >= 2 && (
                   <button
                     onClick={handleWatchAd}
-                    className="mb-4 w-full bg-indigo-500 text-white font-black py-4 px-4 rounded-2xl uppercase tracking-wider border-b-4 border-indigo-700 active:translate-y-1 active:border-b-0 hover:bg-indigo-400 transition-all shadow-lg flex items-center justify-center gap-3 text-sm"
+                    className="mb-3 lg:mb-4 w-full bg-indigo-500 text-white font-black py-3 lg:py-4 px-4 rounded-xl lg:rounded-2xl uppercase tracking-wider border-b-4 border-indigo-700 active:translate-y-1 active:border-b-0 hover:bg-indigo-400 transition-all shadow-lg flex items-center justify-center gap-2 lg:gap-3 text-xs lg:text-sm"
                   >
                     <span>▶️</span> Tounen Dèyè (Piblisite)
                   </button>
@@ -669,7 +668,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                   {user.id.startsWith('guest-') ? (
                     <button
                       onClick={() => onExit()}
-                      className="w-full bg-blue-500 text-white font-black py-4 rounded-2xl uppercase tracking-widest border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 hover:bg-blue-400 transition-all shadow-lg text-lg animate-pulse"
+                      className="w-full bg-blue-500 text-white font-black py-3 lg:py-4 rounded-xl lg:rounded-2xl uppercase tracking-widest border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 hover:bg-blue-400 transition-all shadow-lg text-sm lg:text-lg animate-pulse"
                     >
                       Konekte pou w Sove Pwen w yo!
                     </button>
@@ -677,23 +676,23 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                     <>
                       <button
                         onClick={resetGame}
-                        className="w-full bg-green-500 text-white font-black py-4 rounded-2xl uppercase tracking-widest border-b-4 border-green-700 active:translate-y-1 active:border-b-0 hover:bg-green-400 transition-all shadow-lg text-lg"
+                        className="w-full bg-green-500 text-white font-black py-3 lg:py-4 rounded-xl lg:rounded-2xl uppercase tracking-widest border-b-4 border-green-700 active:translate-y-1 active:border-b-0 hover:bg-green-400 transition-all shadow-lg text-sm lg:text-lg"
                       >
                         {gameMode === 'multiplayer' ? 'Tounen nan Mòd Multiplayer' : 'Rejwe Menm Mòd'}
                       </button>
-                      <div className="flex space-x-3">
+                      <div className="flex space-x-2 lg:space-x-3">
                         <button
                           onClick={() => {
                             resetGame();
                             setGameMode(null);
                           }}
-                          className="flex-1 bg-blue-500 text-white font-black py-3 rounded-2xl uppercase tracking-widest border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 hover:bg-blue-400 transition-all shadow-md text-xs"
+                          className="flex-1 bg-blue-500 text-white font-black py-2.5 lg:py-3 rounded-xl lg:rounded-2xl uppercase tracking-widest border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 hover:bg-blue-400 transition-all shadow-md text-[10px] lg:text-xs"
                         >
                           Lòt Mòd
                         </button>
                         <button
                           onClick={() => { updatePresenceStatus('online'); onExit(); }}
-                          className="flex-1 bg-slate-800 text-white font-black py-3 rounded-2xl uppercase tracking-widest border-b-4 border-slate-900 active:translate-y-1 active:border-b-0 hover:bg-slate-700 transition-all shadow-md text-xs"
+                          className="flex-1 bg-slate-800 text-white font-black py-2.5 lg:py-3 rounded-xl lg:rounded-2xl uppercase tracking-widest border-b-4 border-slate-900 active:translate-y-1 active:border-b-0 hover:bg-slate-700 transition-all shadow-md text-[10px] lg:text-xs"
                         >
                           Soti
                         </button>
@@ -707,8 +706,8 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
         </div>
 
         {/* Board Panel (Right Side) */}
-        <div className="lg:w-2/3 flex items-center justify-center p-4">
-          <div className="bg-slate-100 p-4 sm:p-6 md:p-8 rounded-[3rem] border-8 border-slate-900 shadow-[10px_10px_0_0_rgba(15,23,42,0.8)] relative">
+        <div className="lg:w-2/3 flex items-center justify-center p-2 lg:p-4 min-h-[400px] w-full flex-grow overflow-hidden relative">
+          <div className="bg-slate-100 p-2 sm:p-4 md:p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] border-4 lg:border-8 border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,0.8)] lg:shadow-[10px_10px_0_0_rgba(15,23,42,0.8)] relative w-full h-full max-h-[80vh] lg:max-h-none flex items-center justify-center">
 
             {/* Minimalist Grid Texture Overlay effect */}
             <div className="absolute inset-0 opacity-5 pointer-events-none rounded-[2.5rem]"
@@ -716,18 +715,18 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
             </div>
 
             {!gameMode ? (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md rounded-[3rem]">
-                <h3 className="text-4xl font-black text-white mb-8 drop-shadow-lg text-center">Chwazi Mòd Jwèt</h3>
-                <div className="space-y-4 w-full max-w-sm">
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-4 lg:p-6 bg-slate-900/80 backdrop-blur-md rounded-[2rem] lg:rounded-[3rem]">
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-4 lg:mb-8 drop-shadow-lg text-center">Chwazi Mòd Jwèt</h3>
+                <div className="space-y-3 lg:space-y-4 w-full max-w-xs lg:max-w-sm">
                   <button
                     onClick={() => setGameMode('pve')}
-                    className="w-full bg-slate-50 text-slate-900 py-4 rounded-2xl font-black text-lg uppercase tracking-widest border-b-8 border-slate-300 active:translate-y-2 active:border-b-0 transition-transform shadow-xl hover:bg-white"
+                    className="w-full bg-slate-50 text-slate-900 py-3 lg:py-4 rounded-xl lg:rounded-2xl font-black text-sm lg:text-lg uppercase tracking-widest border-b-4 lg:border-b-8 border-slate-300 active:translate-y-1 lg:active:translate-y-2 active:border-b-0 transition-transform shadow-xl hover:bg-white z-30 relative"
                   >
                     🤖 Jwe kont Odinatè
                   </button>
                   <button
                     onClick={() => setGameMode('pvp')}
-                    className="w-full bg-slate-800 text-slate-50 py-4 rounded-2xl font-black text-lg uppercase tracking-widest border-b-8 border-slate-950 active:translate-y-2 active:border-b-0 transition-transform shadow-xl hover:bg-slate-700"
+                    className="w-full bg-slate-800 text-slate-50 py-3 lg:py-4 rounded-xl lg:rounded-2xl font-black text-sm lg:text-lg uppercase tracking-widest border-b-4 lg:border-b-8 border-slate-950 active:translate-y-1 lg:active:translate-y-2 active:border-b-0 transition-transform shadow-xl hover:bg-slate-700 z-30 relative"
                   >
                     👥 Jwe ak Zanmi (Local)
                   </button>
@@ -736,7 +735,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                       const id = await handleCreateRoom();
                       if (id) setIsSidebarOpen(true);
                     }}
-                    className="w-full relative overflow-hidden bg-indigo-600 text-white py-4 rounded-2xl font-black text-lg uppercase tracking-widest border-b-8 border-indigo-900 active:translate-y-2 active:border-b-0 transition-transform shadow-xl hover:bg-indigo-500"
+                    className="w-full relative overflow-hidden bg-indigo-600 text-white py-3 lg:py-4 rounded-xl lg:rounded-2xl font-black text-sm lg:text-lg uppercase tracking-widest border-b-4 lg:border-b-8 border-indigo-900 active:translate-y-1 lg:active:translate-y-2 active:border-b-0 transition-transform shadow-xl hover:bg-indigo-500 z-30"
                   >
                     <div className="absolute inset-0 bg-white/20 -skew-x-12 -ml-10 w-4 group-hover:animate-ping pointer-events-none"></div>
                     🌍 Jwe An Liy
@@ -746,9 +745,9 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
             ) : null}
 
             <div
-              className={`grid gap-1 relative z-10 bg-white p-2 rounded-2xl border-2 border-slate-200 transition-opacity ${multiStatus === 'waiting' && gameMode === 'multiplayer' ? 'opacity-50 pointer-events-none grayscale' : ''}`}
+              className={`grid relative z-10 bg-white p-1 sm:p-2 rounded-xl sm:rounded-2xl border-2 border-slate-200 transition-opacity w-full max-w-full aspect-square ${multiStatus === 'waiting' && gameMode === 'multiplayer' ? 'opacity-50 pointer-events-none grayscale' : ''}`}
               style={{
-                gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(18px, 2.5rem))`
+                gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`
               }}
             >
               {board.map((row, rIndex) =>
