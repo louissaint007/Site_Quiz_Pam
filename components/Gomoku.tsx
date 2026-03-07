@@ -192,7 +192,10 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
         currentMatchStateRef.current = { ...currentMatchStateRef.current, ...payload };
         const updatedState = currentMatchStateRef.current;
 
-        setBoard(updatedState.board_state || Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null)));
+        const newBoard = (updatedState.board_state && Array.isArray(updatedState.board_state) && updatedState.board_state.length > 0)
+          ? updatedState.board_state
+          : Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+        setBoard(newBoard);
         setCurrentPlayer(updatedState.current_turn === updatedState.creator_id ? 'X' : 'O');
 
         if (updatedState.status === 'in_progress') {
