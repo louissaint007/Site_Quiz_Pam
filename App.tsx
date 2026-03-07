@@ -391,17 +391,9 @@ const App: React.FC = () => {
           const urlParams = new URLSearchParams(window.location.search);
           const room = urlParams.get('room');
           if (room) {
-            // Unauthenticated user opening a Mòpyon link. Create a guest profile!
-            const guestId = `guest-${crypto.randomUUID()}`;
-            setUser({
-              id: guestId,
-              username: `Envite_${guestId.substring(6, 10)}`,
-              level: 1,
-              xp: 0,
-              balance_htg: 0
-            } as any);
+            // Unauthenticated user opening a Mòpyon link. Redirect to login.
             setMopyonRoomId(room);
-            setView('gomoku');
+            setView('auth');
           } else {
             // Let the default init hide loading
           }

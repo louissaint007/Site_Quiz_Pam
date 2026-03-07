@@ -194,18 +194,24 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
         setBoard(updatedState.board_state || Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null)));
         setCurrentPlayer(updatedState.current_turn === updatedState.creator_id ? 'X' : 'O');
 
-        if (updatedState.status === 'in_progress' && multiStatus === 'waiting') {
-          setMultiStatus('in_progress');
-          setGameState3D('idle');
-          // we are creator, someone joined. get their name
-          if (updatedState.joiner_id) {
-            if (updatedState.joiner_id.startsWith('guest-')) {
-              setOpponentName("Envite");
-            } else {
-              const { data } = await supabase.from('profiles').select('username').eq('id', updatedState.joiner_id).single();
-              if (data) setOpponentName(data.username);
+        if (updatedState.status === 'in_progress') {
+          setMultiStatus(prev => {
+            if (prev === 'waiting') {
+              setGameState3D('idle');
+              // we are creator, someone joined. get their name
+              if (updatedState.joiner_id) {
+                if (updatedState.joiner_id.startsWith('guest-')) {
+                  setOpponentName("Envite");
+                } else {
+                  supabase.from('profiles').select('username').eq('id', updatedState.joiner_id).single().then(({ data }) => {
+                    if (data) setOpponentName(data.username);
+                  });
+                }
+              }
+              return 'in_progress';
             }
-          }
+            return prev;
+          });
         }
 
         if (updatedState.status === 'abandoned') {
@@ -348,9 +354,9 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
       let nextTurnId = null;
       if (winLine || isDraw) nextTurnId = null;
       else {
-        const status = await getMatchStatus(currentMatchId);
-        if (status) {
-          nextTurnId = nextPlayer === 'X' ? status.creator_id : status.joiner_id;
+        const state = currentMatchStateRef.current;
+        if (state) {
+          nextTurnId = nextPlayer === 'X' ? state.creator_id : state.joiner_id;
         }
       }
       await updateMatchState(
