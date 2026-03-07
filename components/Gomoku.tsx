@@ -187,6 +187,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
         // Clear disconnect timer if any response
         if (disconnectTimerRef.current) clearTimeout(disconnectTimerRef.current);
 
+        const oldStatus = currentMatchStateRef.current?.status;
         // Merge the old state with the new payload changes, because realtime payload omits unchanged fields
         currentMatchStateRef.current = { ...currentMatchStateRef.current, ...payload };
         const updatedState = currentMatchStateRef.current;
@@ -195,23 +196,20 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
         setCurrentPlayer(updatedState.current_turn === updatedState.creator_id ? 'X' : 'O');
 
         if (updatedState.status === 'in_progress') {
-          setMultiStatus(prev => {
-            if (prev === 'waiting') {
-              setGameState3D('idle');
-              // we are creator, someone joined. get their name
-              if (updatedState.joiner_id) {
-                if (updatedState.joiner_id.startsWith('guest-')) {
-                  setOpponentName("Envite");
-                } else {
-                  supabase.from('profiles').select('username').eq('id', updatedState.joiner_id).single().then(({ data }) => {
-                    if (data) setOpponentName(data.username);
-                  });
-                }
+          if (oldStatus === 'waiting') {
+            setGameState3D('idle');
+            // we are creator, someone joined. get their name
+            if (updatedState.joiner_id) {
+              if (updatedState.joiner_id.startsWith('guest-')) {
+                setOpponentName("Envite");
+              } else {
+                supabase.from('profiles').select('username').eq('id', updatedState.joiner_id).single().then(({ data }) => {
+                  if (data) setOpponentName(data.username);
+                });
               }
-              return 'in_progress';
             }
-            return prev;
-          });
+          }
+          setMultiStatus('in_progress');
         }
 
         if (updatedState.status === 'abandoned') {
