@@ -58,6 +58,10 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
   const [chatInput, setChatInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Champion Message States
+  const [championMessage, setChampionMessage] = useState('');
+  const [championMessageSent, setChampionMessageSent] = useState(false);
+
   // Ref to hold the current match state since realtime UPDATE only sends changed fields
   const currentMatchStateRef = useRef<any>(null);
 
@@ -210,7 +214,10 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
         }
 
         if (updatedState.status === 'completed' && !winner) {
-          if (updatedState.winner_id && updatedState.winner_id !== user.id) {
+          if (updatedState.winner_id === user.id) {
+            setWinner(mySymbol);
+            setGameState3D('win');
+          } else if (updatedState.winner_id && updatedState.winner_id !== user.id) {
             setWinner(mySymbol === 'X' ? 'O' : 'X');
             setGameState3D('lose');
           } else if (!updatedState.winner_id) {
@@ -389,6 +396,8 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
     setShowAd(false);
     setWinner(null);
     setWinningLine([]);
+    setChampionMessageSent(false);
+    setChampionMessage('');
 
     if (gameMode === 'multiplayer') {
       // To replay multiplayer, normally you create a new room. 
@@ -666,6 +675,53 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                   <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-8">
                     {winner === mySymbol ? 'Bèl jwèt, chanpyon!' : 'Pi bon chans pwochen fwa...'}
                   </p>
+                )}
+
+                {/* Champion's Message Input */}
+                {winner === mySymbol && gameMode === 'multiplayer' && !championMessageSent && (
+                  <div className="mb-6 bg-indigo-50 border-2 border-indigo-200 rounded-xl p-3">
+                    <p className="text-xs font-black text-indigo-500 uppercase mb-2 text-left">🏆 Kite Yon Mesaj Pou Pèdan an</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={championMessage}
+                        onChange={e => setChampionMessage(e.target.value)}
+                        placeholder="Bèl jwèt!"
+                        className="flex-1 bg-white border border-indigo-200 rounded-lg px-2 py-2 text-sm outline-none text-slate-800 font-bold"
+                      />
+                      <button
+                        disabled={!championMessage.trim()}
+                        onClick={async () => {
+                          if (!currentMatchId) return;
+                          await sendMopyonMessage(currentMatchId, user.id, championMessage.trim());
+                          setChampionMessageSent(true);
+                          setChampionMessage('');
+                        }}
+                        className="bg-indigo-500 text-white font-bold px-3 py-1 rounded-lg text-sm shadow-sm disabled:opacity-50 hover:bg-indigo-600 transition-colors"
+                      >
+                        Voye
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {winner === mySymbol && gameMode === 'multiplayer' && championMessageSent && (
+                  <div className="mb-6 bg-green-50 text-green-600 border border-green-200 p-2 rounded-lg text-xs font-bold">
+                    [✓] Mesaj ou a ale!
+                  </div>
+                )}
+
+                {/* Champion's Message Display (for the loser) */}
+                {winner !== mySymbol && winner !== 'draw' && gameMode === 'multiplayer' && (
+                  chatMessages.filter(m => m.sender_id !== user.id).length > 0 && (
+                    <div className="mb-6 bg-slate-50 border-2 border-slate-200 p-3 rounded-xl animate-in fade-in slide-in-from-top-4 relative">
+                      <span className="absolute -top-3 left-4 bg-slate-200 text-slate-600 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-slate-300 shadow-sm z-10">
+                        Mesaj Gayan An 👑
+                      </span>
+                      <p className="text-sm font-bold text-slate-700 mt-2 italic break-words relative z-0">
+                        "{chatMessages.filter(m => m.sender_id !== user.id).slice(-1)[0].content}"
+                      </p>
+                    </div>
+                  )
                 )}
 
                 {/* Ad Revive Button: Only show if allowed, it's PvE, and the user lost (O won) */}
