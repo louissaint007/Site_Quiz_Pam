@@ -72,7 +72,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
   }, [chatMessages]);
 
   useEffect(() => {
-    if (winner && gameMode === 'multiplayer' && currentMatchId) {
+    if (gameMode === 'multiplayer' && currentMatchId) {
       // Load existing messages
       getMopyonMessages(currentMatchId).then(setChatMessages);
 
@@ -83,11 +83,11 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
 
       return () => unsubscribe();
     }
-  }, [winner, gameMode, currentMatchId]);
+  }, [gameMode, currentMatchId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim() || !currentMatchId || winner !== mySymbol) return;
+    if (!chatInput.trim() || !currentMatchId) return;
 
     // Add optimisticly if we want, but realtime is fast enough
     await sendMopyonMessage(currentMatchId, user.id, chatInput.trim());
@@ -213,6 +213,16 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
             }
           }
           setMultiStatus('in_progress');
+        }
+
+        if (updatedState.status === 'completed' && !winner) {
+          if (updatedState.winner_id && updatedState.winner_id !== user.id) {
+            setWinner(mySymbol === 'X' ? 'O' : 'X');
+            setGameState3D('lose');
+          } else if (!updatedState.winner_id) {
+            setWinner('draw');
+            setGameState3D('lose');
+          }
         }
 
         if (updatedState.status === 'abandoned') {
@@ -575,84 +585,84 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
             </div>
           </div>
 
+          {/* Persistent In-Match Chat */}
+          {gameMode === 'multiplayer' && (
+            <div className="bg-slate-800 rounded-3xl overflow-hidden flex flex-col border-4 border-slate-900 h-48 lg:h-56 shadow-[0_4px_0_0_rgba(15,23,42,1)] relative shrink-0">
+              <div className="p-2 border-b-2 border-slate-900 bg-slate-900 flex justify-center items-center">
+                <span className="text-xs font-black uppercase text-indigo-400 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span> Chat an Liy
+                </span>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin scrollbar-thumb-slate-600 bg-slate-800 inner-shadow">
+                {chatMessages.length === 0 ? (
+                  <div className="text-xs text-slate-500 text-center py-4 font-bold">
+                    Kòmanse pale ak {opponentName}...
+                  </div>
+                ) : (
+                  chatMessages.map(msg => {
+                    const isMe = msg.sender_id === user.id;
+                    return (
+                      <div key={msg.id} className={`flex max-w-[90%] gap-2 ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
+                        {/* Avatar */}
+                        <div className="shrink-0 pt-0.5">
+                          {msg.profiles?.avatar_url ? (
+                            <img src={msg.profiles.avatar_url} className="w-6 h-6 rounded-lg object-cover border-2 border-slate-700" />
+                          ) : (
+                            <div className="w-6 h-6 bg-slate-700 rounded-lg flex items-center justify-center text-[10px] border-2 border-slate-600 shadow-sm">🦊</div>
+                          )}
+                        </div>
+                        {/* Bubble */}
+                        <div className={`p-2 rounded-2xl text-xs sm:text-sm font-bold shadow-md break-words ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-700 text-slate-200 rounded-tl-none border border-slate-600'}`}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              <div className="p-3 bg-slate-900 border-t-2 border-slate-900 shrink-0">
+                <form onSubmit={handleSendMessage} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    placeholder="Ekri yon mesaj..."
+                    className="flex-1 bg-slate-800 border-2 focus:border-indigo-500 border-slate-700 outline-none text-white text-xs sm:text-sm px-3 py-2 rounded-xl transition-colors font-bold"
+                  />
+                  <button type="submit" disabled={!chatInput.trim()} className="bg-indigo-500 active:bg-indigo-600 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-black shadow-lg shadow-indigo-500/20 active:translate-y-1 transition-all">
+                    Voye
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
           {winner && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 overflow-y-auto">
               <motion.div
                 initial={{ scale: 0.9, y: 20, opacity: 0 }}
                 animate={{ scale: 1, y: 0, opacity: 1 }}
-                className="bg-slate-100 rounded-[2rem] lg:rounded-3xl border-4 border-slate-800 p-4 sm:p-6 md:p-8 text-center shadow-[0_4px_0_0_rgba(15,23,42,1)] lg:shadow-[0_8px_0_0_rgba(15,23,42,1)] max-w-sm w-full my-auto"
+                className="bg-slate-100 rounded-[2rem] lg:rounded-3xl border-4 border-slate-800 p-4 sm:p-6 md:p-8 text-center shadow-[0_4px_0_0_rgba(15,23,42,1)] lg:shadow-[0_8px_0_0_rgba(15,23,42,1)] max-w-sm w-full my-auto mt-20 lg:mt-auto relative"
               >
-                <div className="w-16 h-16 lg:w-20 lg:h-20 mx-auto bg-slate-200 rounded-full flex items-center justify-center mb-4 lg:mb-6 border-4 border-slate-800 shadow-inner">
-                  <span className="text-3xl lg:text-4xl">{winner === 'draw' ? '🤝' : '🏆'}</span>
+                {/* Visual decorations */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400 opacity-20 blur-3xl rounded-full translate-x-10 -translate-y-10"></div>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500 opacity-20 blur-3xl rounded-full -translate-x-10 translate-y-10"></div>
+
+                <div className={`w-20 h-20 lg:w-24 lg:h-24 mx-auto ${winner === mySymbol ? 'bg-amber-100 border-amber-400' : 'bg-slate-200 border-slate-800'} rounded-full flex items-center justify-center mb-6 lg:mb-8 border-4 shadow-inner relative z-10`}>
+                  <span className="text-4xl lg:text-5xl drop-shadow-md">{winner === 'draw' ? '🤝' : (winner === mySymbol ? '👑' : '💀')}</span>
                 </div>
-                <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">
-                  {winner === 'draw' ? 'Match Nul!' : `Jwè ${winner === 'X' ? '1' : '2'} Genyen!`}
+
+                <h3 className={`text-3xl md:text-4xl font-black uppercase tracking-tighter mb-2 ${winner === mySymbol ? 'text-amber-500 drop-shadow-sm' : 'text-slate-900'}`}>
+                  {winner === 'draw' ? 'Match Nul!' : (winner === mySymbol ? 'Ou Genyen!' : 'Ou Pèdi!')}
                 </h3>
+
                 {winner !== 'draw' && (
-                  <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-6">
-                    Bèl jwèt, bèl match!
+                  <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-8">
+                    {winner === mySymbol ? 'Bèl jwèt, chanpyon!' : 'Pi bon chans pwochen fwa...'}
                   </p>
-                )}
-
-                {/* Post-Match Chat Section */}
-                {gameMode === 'multiplayer' && (
-                  <div className="bg-slate-800 rounded-xl lg:rounded-2xl mb-4 lg:mb-6 overflow-hidden flex flex-col border border-slate-700 max-h-32 lg:max-h-48 shadow-inner relative">
-                    <div className="p-1.5 lg:p-2 border-b border-slate-700 bg-slate-900/50">
-                      <span className="text-[10px] font-black uppercase text-indigo-400 flex items-center gap-1 justify-center">
-                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Chat Match La
-                      </span>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-slate-600">
-                      {chatMessages.length === 0 ? (
-                        <div className="text-xs text-slate-500 text-center py-4 italic">
-                          Pa gen mesaj... {winner === mySymbol ? "Voye youn bay pèdan an!" : ""}
-                        </div>
-                      ) : (
-                        chatMessages.map(msg => {
-                          const isMe = msg.sender_id === user.id;
-                          return (
-                            <div key={msg.id} className={`flex max-w-[90%] gap-2 ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
-                              {/* Avatar */}
-                              <div className="shrink-0 pt-0.5">
-                                {msg.profiles?.avatar_url ? (
-                                  <img src={msg.profiles.avatar_url} className="w-5 h-5 rounded-md object-cover" />
-                                ) : (
-                                  <div className="w-5 h-5 bg-slate-700 rounded-md flex items-center justify-center text-[10px]">🦊</div>
-                                )}
-                              </div>
-                              {/* Bubble */}
-                              <div className={`p-2 rounded-xl text-xs break-words ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-700 text-slate-200 rounded-tl-none'}`}>
-                                {msg.content}
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                      <div ref={messagesEndRef} />
-                    </div>
-
-                    <div className="p-2 bg-slate-900 border-t border-slate-700">
-                      {winner === mySymbol ? (
-                        <form onSubmit={handleSendMessage} className="flex gap-2">
-                          <input
-                            type="text"
-                            value={chatInput}
-                            onChange={e => setChatInput(e.target.value)}
-                            placeholder="Voye yon mesaj..."
-                            className="flex-1 bg-slate-800 border focus:border-indigo-500 border-slate-700 outline-none text-white text-xs px-3 py-2 rounded-lg"
-                          />
-                          <button type="submit" disabled={!chatInput.trim()} className="bg-indigo-500 disabled:opacity-50 text-white px-3 py-1 rounded-lg text-xs font-black">
-                            {'>'}
-                          </button>
-                        </form>
-                      ) : (
-                        <div className="text-[10px] text-slate-500 text-center px-2 py-1 font-bold">
-                          ⚠️ Ou dwe genyen yon match pou w ka voye mesaj.
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 )}
 
                 {/* Ad Revive Button: Only show if allowed, it's PvE, and the user lost (O won) */}
