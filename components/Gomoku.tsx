@@ -600,68 +600,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
             </div>
           </div>
 
-          {/* Persistent In-Match Chat */}
-          {gameMode === 'multiplayer' && (
-            <div className="bg-slate-800 rounded-3xl overflow-hidden flex flex-col border-4 border-slate-900 h-48 lg:h-56 shadow-[0_4px_0_0_rgba(15,23,42,1)] relative shrink-0">
-              <div className="p-2 border-b-2 border-slate-900 bg-slate-900 flex justify-center items-center">
-                <span className="text-xs font-black uppercase text-indigo-400 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span> Chat an Liy
-                </span>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin scrollbar-thumb-slate-600 bg-slate-800 inner-shadow">
-                {chatMessages.length === 0 ? (
-                  <div className="text-xs text-slate-500 text-center py-4 font-bold">
-                    Kòmanse pale ak {opponentName}...
-                  </div>
-                ) : (
-                  chatMessages.map(msg => {
-                    const isMe = msg.sender_id === user.id;
-                    return (
-                      <div key={msg.id} className={`flex max-w-[90%] gap-2 ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
-                        {/* Avatar */}
-                        <div className="shrink-0 pt-0.5">
-                          {msg.profiles?.avatar_url ? (
-                            <img src={msg.profiles.avatar_url} className="w-6 h-6 rounded-lg object-cover border-2 border-slate-700" />
-                          ) : (
-                            <div className="w-6 h-6 bg-slate-700 rounded-lg flex items-center justify-center text-[10px] border-2 border-slate-600 shadow-sm">🦊</div>
-                          )}
-                        </div>
-                        {/* Bubble */}
-                        <div className={`p-2 rounded-2xl text-xs sm:text-sm font-bold shadow-md break-words ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-700 text-slate-200 rounded-tl-none border border-slate-600'}`}>
-                          {msg.content}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              <div className="p-3 bg-slate-900 border-t-2 border-slate-900 shrink-0">
-                {winner && winner !== 'draw' && winner !== mySymbol ? (
-                  <div className="p-2 border-2 border-slate-800 border-dashed rounded-xl bg-slate-800/50 text-center">
-                    <span className="text-xs font-bold text-slate-400 italic">
-                      Seul le vainqueur peut parler pour l'instant...
-                    </span>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSendMessage} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={e => setChatInput(e.target.value)}
-                      placeholder="Ekri yon mesaj..."
-                      className="flex-1 bg-slate-800 border-2 focus:border-indigo-500 border-slate-700 outline-none text-white text-xs sm:text-sm px-3 py-2 rounded-xl transition-colors font-bold"
-                    />
-                    <button type="submit" disabled={!chatInput.trim()} className="bg-indigo-500 active:bg-indigo-600 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-black shadow-lg shadow-indigo-500/20 active:translate-y-1 transition-all">
-                      Voye
-                    </button>
-                  </form>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Persistent In-Match Chat removed to respect unilateral post-match winner DB rules */}
 
           {winner && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 overflow-y-auto">
@@ -759,7 +698,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                         onClick={resetGame}
                         className="w-full bg-green-500 text-white font-black py-3 lg:py-4 rounded-xl lg:rounded-2xl uppercase tracking-widest border-b-4 border-green-700 active:translate-y-1 active:border-b-0 hover:bg-green-400 transition-all shadow-lg text-sm lg:text-lg"
                       >
-                        {gameMode === 'multiplayer' ? 'Tounen nan Mòd Multiplayer' : 'Rejwe Menm Mòd'}
+                        {gameMode === 'multiplayer' ? 'Rejwe' : 'Rejwe Menm Mòd'}
                       </button>
                       <div className="flex space-x-2 lg:space-x-3">
                         <button
