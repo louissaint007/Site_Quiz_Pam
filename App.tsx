@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserProfile, Question, Contest, Wallet, Transaction, SoloSyncData } from './types';
+import { UserProfile, Question, Contest, Wallet, Transaction, SoloSyncData, MopyonInvite } from './types';
 import QuizCard from './components/QuizCard';
 import GameTimer from './components/GameTimer';
 import AdminQuestionManager from './components/AdminQuestionManager';
@@ -32,6 +32,7 @@ import FAQView from './components/FAQ';
 import ContactUs from './components/ContactUs';
 import { AdminContactMessages } from './components/AdminContactMessages';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import { subscribeToMopyonInvites, respondToInvite } from './utils/mopyonMultiplayer';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -58,6 +59,7 @@ const App: React.FC = () => {
   const [hasPendingSync, setHasPendingSync] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [gameAnswers, setGameAnswers] = useState<{ questionId: string, isCorrect: boolean, timeSpent: number }[]>([]);
+  const [globalInvite, setGlobalInvite] = useState<MopyonInvite | null>(null);
   const [siteSettings, setSiteSettings] = useState<any>(null);
   const [fraudWarnings, setFraudWarnings] = useState(0);
   const [selectedPrizeImage, setSelectedPrizeImage] = useState<string | null>(null);
@@ -353,6 +355,16 @@ const App: React.FC = () => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [gameState]);
+
+  // Global Invite Listener
+  useEffect(() => {
+    if (user && !user.id.startsWith('guest-')) {
+      const unsub = subscribeToMopyonInvites(user.id, (invite) => {
+        setGlobalInvite(invite);
+      });
+      return () => unsub();
+    }
+  }, [user]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1372,6 +1384,65 @@ const App: React.FC = () => {
 
       {/* Floating Chat */}
       {user && <FloatingChat user={user} />}
+
+      {/* Global Mòpyon Invite Modal */}
+      <AnimatePresence>
+        {globalInvite && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-slate-100 rounded-[2rem] p-6 lg:p-8 max-w-sm w-full border-4 border-slate-800 shadow-[0_8px_0_0_rgba(15,23,42,1)] text-center relative overflow-hidden"
+            >
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-fuchsia-500 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
+
+              <div className="w-20 h-20 mx-auto relative mb-4">
+                {globalInvite.sender?.avatar_url ? (
+                  <img src={globalInvite.sender.avatar_url} alt="Avatar" className="w-full h-full rounded-2xl object-cover border-4 border-slate-800 shadow-inner" />
+                ) : (
+                  <div className="w-full h-full bg-indigo-100 rounded-2xl flex items-center justify-center border-4 border-slate-800 shadow-inner">
+                    <span className="text-3xl">🎮</span>
+                  </div>
+                )}
+                <div className="absolute -bottom-2 -right-2 bg-slate-800 text-white w-8 h-8 flex items-center justify-center rounded-full border-2 border-slate-100 shadow-md">
+                  ⭕
+                </div>
+              </div>
+
+              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-2">Defi Mòpyon!</h3>
+              <p className="text-slate-600 font-bold mb-6 text-sm">
+                <span className="text-indigo-600 font-black">{globalInvite.sender?.username || 'Yon jwè'}</span> envite w jwe yon pati Mòpyon!
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    await respondToInvite(globalInvite.id, 'declined');
+                    setGlobalInvite(null);
+                  }}
+                  className="flex-1 bg-slate-200 text-slate-600 font-black py-3 rounded-xl uppercase tracking-widest border-b-4 border-slate-300 active:translate-y-1 active:border-b-0 hover:bg-slate-300 transition-all text-xs"
+                >
+                  Refize
+                </button>
+                <button
+                  onClick={async () => {
+                    await respondToInvite(globalInvite.id, 'accepted');
+                    setMopyonRoomId(globalInvite.match_id);
+                    setView('gomoku');
+                    setGlobalInvite(null);
+                  }}
+                  className="flex-[2] relative overflow-hidden bg-indigo-600 text-white font-black py-3 rounded-xl uppercase tracking-widest border-b-4 border-indigo-900 active:translate-y-1 active:border-b-0 hover:bg-indigo-500 transition-all shadow-md text-xs group"
+                >
+                  <div className="absolute inset-0 bg-white/20 -skew-x-12 -ml-10 w-4 group-hover:animate-ping pointer-events-none"></div>
+                  Aksepte
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

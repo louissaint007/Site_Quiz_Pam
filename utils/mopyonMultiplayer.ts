@@ -270,3 +270,27 @@ export const respondToInvite = async (inviteId: string, status: 'accepted' | 'de
 
     return !error;
 }
+
+export const subscribeToMopyonInvites = (userId: string, onNewInvite: (invite: MopyonInvite) => void) => {
+    const channel = supabase.channel(`mopyon_invites_${userId}`);
+
+    channel
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mopyon_invites', filter: `receiver_id=eq.${userId}` }, async (payload) => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('username, avatar_url')
+                .eq('id', payload.new.sender_id)
+                .single();
+
+            const invite: MopyonInvite = {
+                ...payload.new as MopyonInvite,
+                sender: data || undefined
+            };
+            onNewInvite(invite);
+        })
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
+}
