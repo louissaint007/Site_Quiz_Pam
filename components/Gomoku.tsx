@@ -215,10 +215,10 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
 
         if (updatedState.status === 'completed' && !winner) {
           if (updatedState.winner_id === user.id) {
-            setWinner(mySymbol);
+            setWinner(mySymbol); // We assign mySymbol to denote "I am the winner" locally
             setGameState3D('win');
           } else if (updatedState.winner_id && updatedState.winner_id !== user.id) {
-            setWinner(mySymbol === 'X' ? 'O' : 'X');
+            setWinner(mySymbol === 'X' ? 'O' : 'X'); // Assign the opponent's symbol to denote "I am the loser" locally
             setGameState3D('lose');
           } else if (!updatedState.winner_id) {
             setWinner('draw');
@@ -636,18 +636,26 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
               </div>
 
               <div className="p-3 bg-slate-900 border-t-2 border-slate-900 shrink-0">
-                <form onSubmit={handleSendMessage} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
-                    placeholder="Ekri yon mesaj..."
-                    className="flex-1 bg-slate-800 border-2 focus:border-indigo-500 border-slate-700 outline-none text-white text-xs sm:text-sm px-3 py-2 rounded-xl transition-colors font-bold"
-                  />
-                  <button type="submit" disabled={!chatInput.trim()} className="bg-indigo-500 active:bg-indigo-600 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-black shadow-lg shadow-indigo-500/20 active:translate-y-1 transition-all">
-                    Voye
-                  </button>
-                </form>
+                {winner && winner !== 'draw' && winner !== mySymbol ? (
+                  <div className="p-2 border-2 border-slate-800 border-dashed rounded-xl bg-slate-800/50 text-center">
+                    <span className="text-xs font-bold text-slate-400 italic">
+                      Seul le vainqueur peut parler pour l'instant...
+                    </span>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSendMessage} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      placeholder="Ekri yon mesaj..."
+                      className="flex-1 bg-slate-800 border-2 focus:border-indigo-500 border-slate-700 outline-none text-white text-xs sm:text-sm px-3 py-2 rounded-xl transition-colors font-bold"
+                    />
+                    <button type="submit" disabled={!chatInput.trim()} className="bg-indigo-500 active:bg-indigo-600 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-black shadow-lg shadow-indigo-500/20 active:translate-y-1 transition-all">
+                      Voye
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           )}
@@ -668,7 +676,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                 </div>
 
                 <h3 className={`text-3xl md:text-4xl font-black uppercase tracking-tighter mb-2 ${winner === mySymbol ? 'text-amber-500 drop-shadow-sm' : 'text-slate-900'}`}>
-                  {winner === 'draw' ? 'Match Nul!' : (winner === mySymbol ? 'Ou Genyen!' : 'Ou Pèdi!')}
+                  {winner === 'draw' ? 'Match Nul!' : (winner === mySymbol ? 'VICTOIRE!' : 'DÉFAITE!')}
                 </h3>
 
                 {winner !== 'draw' && (
