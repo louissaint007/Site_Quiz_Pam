@@ -214,11 +214,14 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
         }
 
         if (updatedState.status === 'completed' && !winner) {
+          const amActualCreator = updatedState.creator_id === user.id;
+          const actualMySymbol = amActualCreator ? 'X' : 'O';
+
           if (updatedState.winner_id === user.id) {
-            setWinner(mySymbol); // We assign mySymbol to denote "I am the winner" locally
+            setWinner(actualMySymbol); // We assign actualMySymbol to denote "I am the winner" locally
             setGameState3D('win');
           } else if (updatedState.winner_id && updatedState.winner_id !== user.id) {
-            setWinner(mySymbol === 'X' ? 'O' : 'X'); // Assign the opponent's symbol to denote "I am the loser" locally
+            setWinner(actualMySymbol === 'X' ? 'O' : 'X'); // Assign the opponent's symbol to denote "I am the loser" locally
             setGameState3D('lose');
           } else if (!updatedState.winner_id) {
             setWinner('draw');
