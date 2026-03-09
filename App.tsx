@@ -25,6 +25,7 @@ import { AdminMessages } from './components/AdminMessages';
 import { logUserActivity } from './utils/audit';
 import { MoKwazeDinamik } from './components/MoKwazeDinamik';
 import { WinnerMessagesTicker } from './components/WinnerMessagesTicker';
+import { RivalNotification } from './components/RivalNotification';
 import { AdminStoryManager } from './components/AdminStoryManager';
 import { Gomoku } from './components/Gomoku';
 import TermsOfUse from './components/TermsOfUse';
@@ -1409,6 +1410,9 @@ const App: React.FC = () => {
 
       {/* Floating Chat */}
       {user && <FloatingChat user={user} />}
+
+      {/* Global Rival Notification */}
+      {user && <RivalNotification currentUserId={user.id} />}
 
       {/* Global Mòpyon Invite Modal */}
       <AnimatePresence>

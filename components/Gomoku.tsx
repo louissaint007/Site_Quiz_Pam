@@ -644,10 +644,13 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                         onClick={async () => {
                           if (!currentMatchId) return;
                           await sendMopyonMessage(currentMatchId, user.id, championMessage.trim());
+                          const status = await getMatchStatus(currentMatchId);
+                          const opponentId = status ? (status.creator_id === user.id ? status.joiner_id : status.creator_id) : null;
                           await supabase.from('winner_messages').insert({
                             user_id: user.id,
                             message: championMessage.trim(),
-                            game_type: 'mopyon'
+                            game_type: 'mopyon',
+                            ...(opponentId ? { opponent_id: opponentId } : {})
                           });
                           setChampionMessageSent(true);
                           setChampionMessage('');
@@ -728,10 +731,10 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
               </motion.div>
             </div>
           )}
-        </div>
+        </div >
 
         {/* Board Panel (Right Side) */}
-        <div className="lg:w-2/3 flex items-center justify-center p-2 lg:p-4 min-h-[400px] w-full flex-grow overflow-hidden relative">
+        < div className="lg:w-2/3 flex items-center justify-center p-2 lg:p-4 min-h-[400px] w-full flex-grow overflow-hidden relative" >
           <div className="bg-slate-100 p-2 sm:p-4 md:p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] border-4 lg:border-8 border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,0.8)] lg:shadow-[10px_10px_0_0_rgba(15,23,42,0.8)] relative w-full h-full max-h-[80vh] lg:max-h-none flex items-center justify-center">
 
             {/* Minimalist Grid Texture Overlay effect */}
@@ -820,8 +823,8 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
             )}
 
           </div>
-        </div>
-      </div>
+        </div >
+      </div >
     </>
   );
 };

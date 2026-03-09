@@ -46,7 +46,15 @@ export const WinnerMessagesTicker: React.FC = () => {
         };
     }, []);
 
-    if (messages.length === 0) return null;
+    const displayMessages = messages.length > 0
+        ? messages
+        : [{
+            id: 'default',
+            message: 'Akoz pako gen chanpyon ki kite mesaj. Jwe pou w ka premye a!',
+            game_type: 'système',
+            created_at: new Date().toISOString(),
+            profiles: { username: 'Gayan', avatar_url: '', avatars_url: '' }
+        }];
 
     return (
         <div className="w-full bg-slate-900/80 border-y border-white/10 py-3 overflow-hidden relative flex items-center shadow-inner">
@@ -55,7 +63,7 @@ export const WinnerMessagesTicker: React.FC = () => {
 
             <div className="whitespace-nowrap flex items-center animate-[marquee_20s_linear_infinite] hover:[animation-play-state:paused]">
                 {/* We map twice to create an infinite loop effect if there are few messages */}
-                {[...messages, ...messages].map((msg, i) => (
+                {[...displayMessages, ...displayMessages].map((msg, i) => (
                     <div key={`${msg.id}-${i}`} className="inline-flex items-center gap-3 px-8">
                         <span className="text-xl line-clamp-1">🏆</span>
                         <div className="flex flex-col">
