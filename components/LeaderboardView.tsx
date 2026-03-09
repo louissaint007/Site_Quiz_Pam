@@ -12,6 +12,8 @@ interface LeaderboardViewProps {
 const LeaderboardView: React.FC<LeaderboardViewProps> = ({ contest, currentUserId, onBack }) => {
     const [participants, setParticipants] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [winnerMessage, setWinnerMessage] = useState('');
+    const [winnerMessageSent, setWinnerMessageSent] = useState(false);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
@@ -85,6 +87,43 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ contest, currentUserI
                         )}
                     </div>
                 </div>
+
+                {currentUserRank === 1 && !winnerMessageSent && (
+                    <div className="p-6 bg-yellow-500/10 border-b border-yellow-500/20">
+                        <p className="text-sm font-black text-yellow-500 uppercase mb-3 flex items-center gap-2">
+                            <span>👑</span> Kite yon mesaj kòm chanpyon (pou tout moun wè)
+                        </p>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                maxLength={100}
+                                value={winnerMessage}
+                                onChange={e => setWinnerMessage(e.target.value)}
+                                placeholder="Ekri mesaj ou a la..."
+                                className="flex-1 bg-slate-900 border border-yellow-500/30 rounded-xl px-4 py-2 text-white outline-none focus:border-yellow-500"
+                            />
+                            <button
+                                disabled={!winnerMessage.trim()}
+                                onClick={async () => {
+                                    await supabase.from('winner_messages').insert({
+                                        user_id: currentUserId,
+                                        message: winnerMessage.trim(),
+                                        game_type: 'quiz'
+                                    });
+                                    setWinnerMessageSent(true);
+                                }}
+                                className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-slate-900 font-black px-6 py-2 rounded-xl transition-colors uppercase text-sm tracking-widest"
+                            >
+                                Voye
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {currentUserRank === 1 && winnerMessageSent && (
+                    <div className="p-6 bg-green-500/10 border-b border-green-500/20 text-center">
+                        <p className="text-green-500 font-bold text-sm">✅ Mesaj ou a anrejistre nan istorik chanpyon yo!</p>
+                    </div>
+                )}
 
                 <div className="divide-y divide-white/5">
                     {displayedParticipants.map((p, idx) => {

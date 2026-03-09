@@ -644,6 +644,11 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                         onClick={async () => {
                           if (!currentMatchId) return;
                           await sendMopyonMessage(currentMatchId, user.id, championMessage.trim());
+                          await supabase.from('winner_messages').insert({
+                            user_id: user.id,
+                            message: championMessage.trim(),
+                            game_type: 'mopyon'
+                          });
                           setChampionMessageSent(true);
                           setChampionMessage('');
                         }}

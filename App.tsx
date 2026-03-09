@@ -24,6 +24,7 @@ import { AdminUserExplorer } from './components/AdminUserExplorer';
 import { AdminMessages } from './components/AdminMessages';
 import { logUserActivity } from './utils/audit';
 import { MoKwazeDinamik } from './components/MoKwazeDinamik';
+import { WinnerMessagesTicker } from './components/WinnerMessagesTicker';
 import { AdminStoryManager } from './components/AdminStoryManager';
 import { Gomoku } from './components/Gomoku';
 import TermsOfUse from './components/TermsOfUse';
@@ -953,6 +954,8 @@ const App: React.FC = () => {
               <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter uppercase mb-4 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">Lobby <span className="text-red-500">Jwèt Yo</span></h1>
               <p className="text-base sm:text-lg text-slate-400 max-w-md mx-auto">Chwazi yon konkou oswa antrene tèt ou an Solo.</p>
             </div>
+
+            <WinnerMessagesTicker />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 px-2 md:px-0">
               <div

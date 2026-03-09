@@ -182,3 +182,31 @@ INSERT INTO levels_config (level, title, min_xp) VALUES
 -- Level 50: Lajand
 (50, 'Lajand', 400000)
 ON CONFLICT (level) DO UPDATE SET title = EXCLUDED.title, min_xp = EXCLUDED.min_xp;
+
+-- Table to keep a history of winner messages
+CREATE TABLE IF NOT EXISTS public.winner_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    game_type TEXT, -- e.g., 'quiz', 'mopyon', 'mokwaze', etc.
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.winner_messages ENABLE ROW LEVEL SECURITY;
+
+-- Allow anyone (even unauthenticated) to read messages
+CREATE POLICY "Anyone can view winner messages" ON public.winner_messages
+    FOR SELECT USING (true);
+
+-- Allow authenticated users to insert their own messages
+CREATE POLICY "Authenticated users can insert their messages" ON public.winner_messages
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Optional: Allow users to delete their own messages
+CREATE POLICY "Users can delete their messages" ON public.winner_messages
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Expose to realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE winner_messages;
+
