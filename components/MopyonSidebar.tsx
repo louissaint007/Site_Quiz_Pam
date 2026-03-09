@@ -29,7 +29,7 @@ interface MopyonSidebarProps {
 }
 
 export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, userProfile, currentMatchId, onCreateRoom, onlinePlayers }) => {
-    const [activeTab, setActiveTab] = useState<'share' | 'search' | 'history' | 'inbox'>('share');
+    const [activeTab, setActiveTab] = useState<'share' | 'search' | 'history' | 'inbox' | 'champions'>('share');
 
     // Share Tab
     const [inviteLink, setInviteLink] = useState('');
@@ -52,6 +52,10 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
     // Invites
     const [pendingInvites, setPendingInvites] = useState<MopyonInvite[]>([]);
     const [loadingInvites, setLoadingInvites] = useState(false);
+
+    // Champions
+    const [championsList, setChampionsList] = useState<any[]>([]);
+    const [loadingChampions, setLoadingChampions] = useState(false);
 
     const loadInvites = async () => {
         setLoadingInvites(true);
@@ -155,6 +159,31 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
         }
     }, [isOpen, activeTab]);
 
+    const loadChampions = async () => {
+        setLoadingChampions(true);
+        const { data, error } = await supabase
+            .from('winner_messages')
+            .select(`
+                id, message, game_type, created_at,
+                profiles:user_id (username, avatar_url)
+            `)
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (!error && data) {
+            setChampionsList(data);
+        } else {
+            console.error("Erè chaje chanpyon", error);
+        }
+        setLoadingChampions(false);
+    };
+
+    useEffect(() => {
+        if (isOpen && activeTab === 'champions') {
+            loadChampions();
+        }
+    }, [isOpen, activeTab]);
+
     const handleChallenge = async (opponentId: string) => {
         let matchId = currentMatchId;
         if (!matchId) {
@@ -207,6 +236,7 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
                             <TabButton active={activeTab === 'search'} onClick={() => setActiveTab('search')} icon="🔍" text="Rechèch" />
                             <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon="⏱️" text="Istorik" />
                             <TabButton active={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} icon="📬" text="Mesaj" badge={pendingInvites.length} />
+                            <TabButton active={activeTab === 'champions'} onClick={() => setActiveTab('champions')} icon="🏆" text="Chanpyon" />
                         </div>
 
                         <div className="p-6 overflow-y-auto flex-1 h-full scrollbar-thin scrollbar-thumb-slate-700">
@@ -393,6 +423,43 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
                                     ) : (
                                         <div className="text-center text-slate-500 text-xs py-10 border-2 border-dashed border-slate-800 rounded-xl">
                                             Ou pa gen okenn envitasyon kounye a.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* CHAMPIONS TAB */}
+                            {activeTab === 'champions' && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                                    <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <span className="text-2xl">🏆</span> Istorik Chanpyon
+                                    </h3>
+
+                                    {loadingChampions ? (
+                                        <div className="text-center py-8 text-slate-500"><div className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>Chaje...</div>
+                                    ) : championsList.length > 0 ? (
+                                        championsList.map(item => (
+                                            <div key={item.id} className="bg-slate-800/80 p-4 rounded-xl border border-yellow-500/20 flex gap-3 relative overflow-hidden group">
+                                                <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-500/5 rotate-12 translate-x-4 -translate-y-4 rounded-3xl pointer-events-none"></div>
+                                                <div className="shrink-0">
+                                                    {item.profiles?.avatar_url ? (
+                                                        <img src={item.profiles.avatar_url} className="w-10 h-10 rounded-full object-cover border-2 border-slate-700 shadow-sm" />
+                                                    ) : (
+                                                        <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-lg border-2 border-slate-600">👤</div>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-sm font-bold text-slate-200">{item.profiles?.username || 'Anonyme'}</span>
+                                                        <span className="text-[9px] font-black uppercase text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20">{item.game_type === 'quiz' ? 'Quiz' : 'Mòpyon'}</span>
+                                                    </div>
+                                                    <p className="text-xs text-slate-400 italic font-bold">"{item.message}"</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center text-slate-500 text-xs py-10 border-2 border-dashed border-slate-800 rounded-xl">
+                                            Pa gen okenn chanpyon ki kite mesaj ankò. Jwe pou w ka premye a!
                                         </div>
                                     )}
                                 </div>
