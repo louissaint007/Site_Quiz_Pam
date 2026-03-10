@@ -13,6 +13,7 @@ import {
   sendMopyonMessage, getMopyonMessages, subscribeToMopyonMessages
 } from '../utils/mopyonMultiplayer';
 import { MopyonMessage } from '../types';
+import { sounds } from '../utils/soundEffects';
 
 interface GomokuProps {
   user: UserProfile;
@@ -335,6 +336,8 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
     }
 
     if (winner || board[row][col] !== null) return;
+
+    sounds.playPop();
 
     setBoardHistory(prev => [...prev, board.map(r => [...r])]);
 

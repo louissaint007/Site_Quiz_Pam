@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GridLetter } from '../utils/wordSearchGenerator';
+import { sounds } from '../utils/soundEffects';
 
 interface GridDisplayProps {
     grid: GridLetter[];
@@ -11,85 +12,81 @@ interface GridDisplayProps {
 }
 
 export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWordFound, category = 'Histoire', isShuffling = false }) => {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const gridRef = useRef<HTMLDivElement>(null);
     const [isSelecting, setIsSelecting] = useState(false);
-    const [startIndex, setStartIndex] = useState<number | null>(null);
-    const [currentIndex, setCurrentIndex] = useState<number | null>(null);
-    const [selectedPath, setSelectedPath] = useState<number[]>([]);
+    const [currentSelection, setCurrentSelection] = useState<number[]>([]);
+    const size = Math.sqrt(grid.length);
 
     // Convert 1D index back to x,y
     const getCoords = (index: number) => ({
-        x: index % 10,
-        y: Math.floor(index / 10)
+        x: index % size,
+        y: Math.floor(index / size)
     });
 
-    // Calculate the straight line path between start and current
-    useEffect(() => {
-        if (startIndex !== null && currentIndex !== null) {
-            const start = getCoords(startIndex);
-            const current = getCoords(currentIndex);
+    const isAdjacent = (lastIndex: number, newIndex: number) => {
+        const last = getCoords(lastIndex);
+        const curr = getCoords(newIndex);
+        const dx = Math.abs(curr.x - last.x);
+        const dy = Math.abs(curr.y - last.y);
 
-            const dx = Math.sign(current.x - start.x);
-            const dy = Math.sign(current.y - start.y);
+        // Allow horizontal, vertical, and diagonal consecutive cells
+        return (dx <= 1 && dy <= 1) && !(dx === 0 && dy === 0);
+    };
 
-            // Ensure it's a straight line (horizontal, vertical, or perfectly diagonal)
-            const absDx = Math.abs(current.x - start.x);
-            const absDy = Math.abs(current.y - start.y);
+    const isSameDirection = (history: number[], newIndex: number) => {
+        if (history.length < 2) return true;
 
-            if (dx === 0 || dy === 0 || absDx === absDy) {
-                const path: number[] = [];
-                let curX = start.x;
-                let curY = start.y;
+        const first = getCoords(history[0]);
+        const second = getCoords(history[1]);
+        const current = getCoords(newIndex);
 
-                const steps = Math.max(absDx, absDy);
+        const dx1 = second.x - first.x;
+        const dy1 = second.y - first.y;
 
-                for (let i = 0; i <= steps; i++) {
-                    path.push(curY * 10 + curX);
-                    curX += dx;
-                    curY += dy;
-                }
+        const expectedX = first.x + (dx1 * history.length);
+        const expectedY = first.y + (dy1 * history.length);
 
-                setSelectedPath(path);
-            }
-        } else {
-            setSelectedPath([]);
-        }
-    }, [startIndex, currentIndex]);
+        return current.x === expectedX && current.y === expectedY;
+    };
 
     // Touch & Mouse Handlers
     const handlePointerDown = (index: number) => {
         setIsSelecting(true);
-        setStartIndex(index);
-        setCurrentIndex(index);
+        setCurrentSelection([index]);
+        sounds.playPop(); // Initial touch POP
     };
 
     const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (!isSelecting || !containerRef.current) return;
+        if (!isSelecting) return;
 
-        // Find the element under the pointer
-        const touch = e.clientX ? e : (e as any).touches?.[0];
-        if (!touch) return;
+        // Determine which element is currently under the pointer
+        const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement;
+        if (!target) return;
 
-        const element = document.elementFromPoint(touch.clientX, touch.clientY);
-        // Sometimes the touch is on the inner span, so we need to climb up to find data-index
-        const cellElement = element?.closest('[data-index]');
-        const indexStr = cellElement?.getAttribute('data-index');
+        const indexStr = target.getAttribute('data-index');
+        if (!indexStr) return;
 
-        if (indexStr) {
-            setCurrentIndex(parseInt(indexStr, 10));
+        const index = parseInt(indexStr, 10);
+        if (currentSelection.includes(index)) return; // Already selected
+
+        const lastIndex = currentSelection[currentSelection.length - 1];
+
+        if (isAdjacent(lastIndex, index) && isSameDirection(currentSelection, index)) {
+            setCurrentSelection(prev => [...prev, index]);
+            sounds.playPop(); // Satisfying pop on each letter swiped over
         }
     };
 
     const handlePointerUp = () => {
-        if (isSelecting && selectedPath.length > 0) {
+        if (isSelecting && currentSelection.length > 0) {
             // Form the word from the selected letters
-            const word = selectedPath.map(idx => grid[idx].char).join('');
+            const word = currentSelection.map(idx => grid[idx].char).join('');
             const reverseWord = word.split('').reverse().join('');
 
             // Check if this path specifically hits a valid word placement in the grid
             // We check if all selected letters belong to the SAME valid word
-            const wordOwner = grid[selectedPath[0]].isWordPartOf;
-            const isPerfectMatch = wordOwner && selectedPath.every(idx => grid[idx].isWordPartOf === wordOwner);
+            const wordOwner = grid[currentSelection[0]].isWordPartOf;
+            const isPerfectMatch = wordOwner && currentSelection.every(idx => grid[idx].isWordPartOf === wordOwner);
 
             // If they perfectly dragged over the correct word, trigger it
             if (isPerfectMatch && (word === wordOwner || reverseWord === wordOwner) && !foundWords.includes(wordOwner)) {
@@ -98,9 +95,7 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
         }
 
         setIsSelecting(false);
-        setStartIndex(null);
-        setCurrentIndex(null);
-        setSelectedPath([]);
+        setCurrentSelection([]);
     };
 
     // Category specific visual effects
@@ -158,9 +153,12 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
 
     const activeEffect = effectMap[category] || effectMap['Histoire'];
 
+    const startIndex = currentSelection.length > 0 ? currentSelection[0] : null;
+    const currentIndex = currentSelection.length > 0 ? currentSelection[currentSelection.length - 1] : null;
+
     return (
         <div
-            ref={containerRef}
+            ref={gridRef}
             className="w-full max-w-md mx-auto aspect-square bg-white rounded-xl touch-none border-2 border-slate-300 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden"
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -169,7 +167,7 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
             <div className="absolute inset-0 grid grid-cols-10 grid-rows-10 gap-0 z-0">
                 <AnimatePresence>
                     {grid.map((cell, index) => {
-                        const isSelected = selectedPath.includes(index);
+                        const isSelected = currentSelection.includes(index);
                         const isFound = cell.isWordPartOf && foundWords.includes(cell.isWordPartOf);
 
                         const staggeredDelay = isFound ? (index % 10) * 0.05 : 0;

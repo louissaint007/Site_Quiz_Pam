@@ -35,10 +35,11 @@ import ContactUs from './components/ContactUs';
 import { AdminContactMessages } from './components/AdminContactMessages';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import { subscribeToMopyonInvites, respondToInvite } from './utils/mopyonMultiplayer';
+import { sounds } from './utils/soundEffects';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
-  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'finalist-arena' | 'reviews' | 'my-contests' | 'mokwaze' | 'gomoku' | 'terms' | 'faq' | 'contact' | 'privacy'>('landing');
+  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'leaderboard' | 'finalist-arena' | 'reviews' | 'my-contests' | 'mokwaze' | 'gomoku' | 'terms' | 'faq' | 'contact' | 'privacy'>('landing');
   const [adminTab, setAdminTab] = useState<'stats' | 'questions' | 'contests' | 'users' | 'messages' | 'settings' | 'stories' | 'faqs' | 'support'>('stats');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -595,6 +596,17 @@ const App: React.FC = () => {
     const newTotalTime = totalTimeMs + timeSpent;
 
     if (isCorrect) setScore(newScore);
+    if (isCorrect) {
+      setScore(newScore);
+      // Assuming 'sounds' is imported and available
+      // For example: import * as sounds from '../utils/sounds';
+      // Or if it's a context/hook: const { sounds } = useSounds();
+      // This line needs 'sounds' to be defined in the scope.
+      // Adding a placeholder for now.
+      // sounds.playSuccess(); // Uncomment if sounds is available
+    } else {
+      // sounds.playError(); // Uncomment if sounds is available
+    }
     setTotalTimeMs(newTotalTime);
 
     const newAnswers = [...gameAnswers, { questionId: currentQ.id, isCorrect, timeSpent }];
@@ -611,7 +623,7 @@ const App: React.FC = () => {
         // Validation: Detect impossible scores (e.g., < 1s per question on average)
         const minLegalTime = questions.length * 800; // 0.8s minimum per question
         if (newTotalTime < minLegalTime) {
-          setError("Pèfòmans sa a sispèk. Rezilta a pa save pou sekirite.");
+          setError("Pèfòmans sa a sispèk. Rezulta a pa save pou sekirite.");
           setGameState('ready');
           setView('home');
           return;

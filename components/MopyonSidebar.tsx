@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { MopyonMatch, OnlinePlayer, MopyonMessage, UserProfile, MopyonInvite } from '../types';
-import { sendChallenge, getMopyonMessages, sendMopyonInvite, getPendingInvites, respondToInvite } from '../utils/mopyonMultiplayer';
+import { sendChallenge, sendMopyonInvite, getPendingInvites, respondToInvite } from '../utils/mopyonMultiplayer';
 
 const TabButton = ({ active, onClick, icon, text, badge }: { active: boolean, onClick: () => void, icon: string, text: string, badge?: number }) => (
     <button
@@ -44,19 +44,11 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
     const [history, setHistory] = useState<MopyonMatch[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
 
-    // Chat History Modal
-    const [selectedChatMatchId, setSelectedChatMatchId] = useState<string | null>(null);
-    const [chatHistoryMessages, setChatHistoryMessages] = useState<any[]>([]);
-    const [isLoadingChat, setIsLoadingChat] = useState(false);
-
     // Invites
     const [pendingInvites, setPendingInvites] = useState<MopyonInvite[]>([]);
     const [loadingInvites, setLoadingInvites] = useState(false);
 
-    // Historic Chat Modal (Winner Messages + Match Chat)
-    const [chatHistoryOpponentId, setChatHistoryOpponentId] = useState<string | null>(null);
-    const [isSendingReply, setIsSendingReply] = useState(false);
-    const [replyText, setReplyText] = useState('');
+
 
     const loadInvites = async () => {
         setLoadingInvites(true);
@@ -171,59 +163,7 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
         alert("Envitasyon an ale! Nap tann jwè an...");
     }
 
-    const loadChatHistory = async (matchId: string, opponentId: string) => {
-        setSelectedChatMatchId(matchId);
-        setChatHistoryOpponentId(opponentId);
-        setIsLoadingChat(true);
 
-        // Fetch regular match messages
-        const messages: any[] = await getMopyonMessages(matchId);
-
-        // Fetch historical post-game winner messages between me and the opponent
-        const { data: winnerMsgs } = await supabase
-            .from('winner_messages')
-            .select(`*, profiles:user_id(username, avatar_url)`)
-            .or(`and(user_id.eq.${userProfile.id},opponent_id.eq.${opponentId}),and(user_id.eq.${opponentId},opponent_id.eq.${userProfile.id})`)
-            .eq('game_type', 'mopyon');
-
-        // Merge and sort
-        let combined = [...messages];
-        if (winnerMsgs) {
-            const formattedWinnerMsgs = winnerMsgs.map(wm => ({
-                id: wm.id,
-                match_id: matchId, // mock match_id for UI
-                sender_id: wm.user_id,
-                content: wm.message,
-                created_at: wm.created_at,
-                profiles: wm.profiles,
-                is_winner_message: true // flag to style differently
-            }));
-            combined = [...combined, ...formattedWinnerMsgs];
-        }
-
-        combined.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
-        setChatHistoryMessages(combined);
-        setIsLoadingChat(false);
-    }
-
-    const sendHistoryReply = async () => {
-        if (!replyText.trim() || !chatHistoryOpponentId) return;
-        setIsSendingReply(true);
-
-        // Save as a post-game interaction in winner_messages
-        await supabase.from('winner_messages').insert({
-            user_id: userProfile.id,
-            opponent_id: chatHistoryOpponentId,
-            message: replyText.trim(),
-            game_type: 'mopyon'
-        });
-
-        setReplyText('');
-        setIsSendingReply(false);
-        // refresh chat
-        if (selectedChatMatchId) loadChatHistory(selectedChatMatchId, chatHistoryOpponentId);
-    }
 
     return (
         <AnimatePresence>
@@ -299,7 +239,7 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && searchPlayers()}
                                             placeholder="Non itilizatè..."
-                                            className="flex-1 bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 outline-none transition"
+                                            className="flex-1 bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none transition"
                                         />
                                         <button
                                             onClick={searchPlayers}
@@ -375,15 +315,9 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
                                                     <div className="flex gap-2">
                                                         <button
                                                             onClick={() => handleChallenge(opponentId)}
-                                                            className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center transition gap-2"
+                                                            className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center transition gap-2"
                                                         >
                                                             <span>⚔️</span> Revanche
-                                                        </button>
-                                                        <button
-                                                            onClick={() => loadChatHistory(match.id, opponentId)}
-                                                            className="flex-1 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 border border-indigo-500/30 text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center transition gap-2"
-                                                        >
-                                                            <span>💬</span> Chat & Istwa
                                                         </button>
                                                     </div>
                                                 </div>
@@ -451,81 +385,6 @@ export const MopyonSidebar: React.FC<MopyonSidebarProps> = ({ isOpen, onClose, u
                         </div>
                     </motion.div>
                 </>
-            )}
-
-            {/* Chat History Modal (Rendered independently of side panel state if we want, but logically attached) */}
-            {selectedChatMatchId && (
-                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-                    <motion.div
-                        initial={{ scale: 0.9, y: 20, opacity: 0 }}
-                        animate={{ scale: 1, y: 0, opacity: 1 }}
-                        className="bg-slate-800 border-2 border-slate-700 rounded-2xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl"
-                    >
-                        <div className="p-4 border-b border-slate-700 bg-slate-900 flex justify-between items-center">
-                            <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-                                <span className="text-indigo-400">💬</span> Istorik & Mesaj
-                            </h3>
-                            <button onClick={() => setSelectedChatMatchId(null)} className="text-slate-400 hover:text-white transition">✕</button>
-                        </div>
-
-                        <div className="p-4 h-64 overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-slate-600 flex flex-col">
-                            {isLoadingChat ? (
-                                <div className="text-center py-10 text-slate-500">Ap chaje...</div>
-                            ) : chatHistoryMessages.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500 text-xs italic">Pa gen okenn entèraksyon pou match sa.</div>
-                            ) : (
-                                chatHistoryMessages.map((msg: any) => {
-                                    const isMe = msg.sender_id === userProfile.id;
-                                    const isWinnerMsg = msg.is_winner_message;
-                                    return (
-                                        <div key={msg.id} className={`flex max-w-[90%] gap-2 ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
-                                            <div className="shrink-0 pt-0.5">
-                                                {msg.profiles?.avatar_url ? (
-                                                    <img src={msg.profiles.avatar_url} className="w-5 h-5 rounded-md object-cover" />
-                                                ) : (
-                                                    <div className="w-5 h-5 bg-slate-700 rounded-md flex items-center justify-center text-[10px]">👤</div>
-                                                )}
-                                            </div>
-                                            <div className="flex flex-col">
-                                                {isWinnerMsg && !isMe && (
-                                                    <span className="text-[8px] font-black text-yellow-500 uppercase tracking-widest mb-0.5 text-left">👑 Mesaj Apre Match</span>
-                                                )}
-                                                {isWinnerMsg && isMe && (
-                                                    <span className="text-[8px] font-black text-yellow-500 uppercase tracking-widest mb-0.5 text-right">Mwen (Apre Match)</span>
-                                                )}
-                                                <div className={`p-2 rounded-xl text-xs break-words shadow-sm ${isWinnerMsg
-                                                    ? (isMe ? 'bg-yellow-600 text-white rounded-tr-none border border-yellow-500' : 'bg-yellow-500/20 text-yellow-100 rounded-tl-none border border-yellow-500/30')
-                                                    : (isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-700 text-slate-200 rounded-tl-none')
-                                                    }`}>
-                                                    {msg.content}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-
-                        {/* Reply Input for Post-Game Interactions */}
-                        <div className="p-3 bg-slate-900 border-t border-slate-700 flex gap-2">
-                            <input
-                                type="text"
-                                value={replyText}
-                                onChange={e => setReplyText(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && sendHistoryReply()}
-                                placeholder="Voye yon mesaj..."
-                                className="flex-1 bg-slate-800 border-2 border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-indigo-500 outline-none transition"
-                            />
-                            <button
-                                onClick={sendHistoryReply}
-                                disabled={isSendingReply || !replyText.trim()}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-black uppercase disabled:opacity-50 transition"
-                            >
-                                {isSendingReply ? '...' : 'Voye'}
-                            </button>
-                        </div>
-                    </motion.div>
-                </div>
             )}
         </AnimatePresence>
     );
