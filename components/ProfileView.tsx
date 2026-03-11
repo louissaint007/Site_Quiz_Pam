@@ -1,8 +1,8 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, Wallet, Transaction } from '../types';
 import { getXpForLevel, getPrestigeStyle } from '../utils/xp';
 import { supabase } from '../lib/supabase';
+import { sounds } from '../utils/soundEffects';
 
 interface ProfileViewProps {
   user: UserProfile;
@@ -19,6 +19,15 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, wallet, transactions, o
   const [isUploading, setIsUploading] = React.useState(false);
   const [isEditingUsername, setIsEditingUsername] = React.useState(false);
   const [newUsername, setNewUsername] = React.useState(user.username || '');
+
+  // Sound settings state
+  const [soundEnabled, setSoundEnabled] = useState(sounds.getSettings().enabled);
+  const [soundVolume, setSoundVolume] = useState(sounds.getSettings().volume);
+
+  useEffect(() => {
+    setSoundEnabled(sounds.getSettings().enabled);
+    setSoundVolume(sounds.getSettings().volume);
+  }, []);
 
   const handleSaveUsername = async () => {
     if (!newUsername.trim() || newUsername === user.username) {
@@ -244,6 +253,59 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, wallet, transactions, o
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Dépôts</span>
               <span className="text-blue-400 font-black">{formatCurrency(wallet?.total_deposited || 0)}</span>
+            </div>
+          </div>
+
+          {/* Sound Settings Card */}
+          <div className="bg-slate-800/80 p-6 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+              <svg className="w-24 h-24 text-indigo-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+            </div>
+            <div className="relative z-10 space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mb-4">
+                <span>🔊</span> Odyo & Son
+              </h3>
+
+              {/* Toggle Enable sound */}
+              <div className="flex items-center justify-between bg-slate-900/50 p-4 rounded-3xl border border-white/5">
+                <span className="text-sm font-black text-white hover:text-indigo-400 transition-colors uppercase tracking-widest text-[10px]">
+                  Aktive Son an
+                </span>
+                <button
+                  onClick={() => {
+                    const newState = sounds.toggleEnabled();
+                    setSoundEnabled(newState);
+                    if (newState) sounds.playPop();
+                  }}
+                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ease-in-out ${soundEnabled ? 'bg-indigo-500' : 'bg-slate-700'}`}
+                >
+                  <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${soundEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                </button>
+              </div>
+
+              {/* Volume Slider */}
+              <div className="bg-slate-900/50 p-4 pt-5 rounded-3xl border border-white/5 flex flex-col gap-3">
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">Volim</span>
+                  <span className="text-indigo-400 font-black text-xs">{Math.round(soundVolume * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={soundVolume}
+                  disabled={!soundEnabled}
+                  onChange={(e) => {
+                    const vol = parseFloat(e.target.value);
+                    sounds.setVolume(vol);
+                    setSoundVolume(vol);
+                  }}
+                  onMouseUp={() => { if (soundEnabled) sounds.playPop(); }}
+                  onTouchEnd={() => { if (soundEnabled) sounds.playPop(); }}
+                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${soundEnabled ? 'bg-indigo-900/50 accent-indigo-500' : 'bg-slate-800 accent-slate-600 opacity-50'}`}
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -547,13 +547,13 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
           )}
 
           {/* Mascot Canvas */}
-          <div className="flex-[0.5] lg:flex-1 min-h-[150px] lg:min-h-[200px] relative bg-slate-100/50 rounded-2xl lg:rounded-3xl border-2 border-slate-900/10 inner-shadow">
+          <div className="flex-[0.5] lg:flex-1 min-h-[150px] lg:min-h-[200px] relative bg-slate-100/50 rounded-2xl lg:rounded-3xl border-2 border-slate-900/10 inner-shadow -z-0">
             {xpRewardToast && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-green-500 text-white px-4 py-2 rounded-full font-black text-xs shadow-lg shadow-green-500/20 border-2 border-green-400 whitespace-nowrap"
+                className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-green-500 text-white px-4 py-2 rounded-full font-black text-xs shadow-lg shadow-green-500/20 border-2 border-green-400 whitespace-nowrap"
               >
                 ⚡ {xpRewardToast}
               </motion.div>
@@ -801,13 +801,13 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
                       {cell !== null && (
                         <div
                           className={`
-                                              w-[80%] h-[80%] rounded-full shadow-md flex items-center justify-center font-black text-xl sm:text-2xl animate-in zoom-in duration-300
-                                              ${cell === 'X'
+                            max-w-[80%] max-h-[80%] w-full h-full rounded-full shadow-md flex items-center justify-center font-black text-[12px] sm:text-lg md:text-2xl animate-in zoom-in duration-300
+                            ${cell === 'X'
                               ? 'bg-[#1e3a8a] text-transparent shadow-[inset_-2px_-4px_10px_rgba(0,0,0,0.5),0_4px_6px_rgba(30,58,138,0.5)]'
                               : 'bg-[#dc2626] text-transparent shadow-[inset_-2px_-4px_10px_rgba(0,0,0,0.5),0_4px_6px_rgba(220,38,38,0.5)]'
                             }
-                                              ${isWinNode ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-100 animate-pulse' : ''}
-                                          `}
+                            ${isWinNode ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-100 animate-pulse' : ''}
+                          `}
                         >
                           {cell}
                         </div>

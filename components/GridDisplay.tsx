@@ -15,7 +15,20 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
     const gridRef = useRef<HTMLDivElement>(null);
     const [isSelecting, setIsSelecting] = useState(false);
     const [currentSelection, setCurrentSelection] = useState<number[]>([]);
+    const [gridRect, setGridRect] = useState<DOMRect | null>(null);
     const size = Math.sqrt(grid.length);
+
+    // Update dimensions strictly to ensure reliable math
+    useEffect(() => {
+        const updateRect = () => {
+            if (gridRef.current) {
+                setGridRect(gridRef.current.getBoundingClientRect());
+            }
+        };
+        updateRect();
+        window.addEventListener('resize', updateRect);
+        return () => window.removeEventListener('resize', updateRect);
+    }, []);
 
     // Convert 1D index back to x,y
     const getCoords = (index: number) => ({
@@ -57,23 +70,47 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
     };
 
     const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (!isSelecting) return;
+        if (!isSelecting || !gridRect) return;
 
-        // Determine which element is currently under the pointer
-        const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement;
-        if (!target) return;
+        // Calculate relative coordinates within the grid container
+        const relX = e.clientX - gridRect.left;
+        const relY = e.clientY - gridRect.top;
 
-        const indexStr = target.getAttribute('data-index');
-        if (!indexStr) return;
+        // Ensure pointer is actually inside bounds loosely
+        if (relX < 0 || relY < 0 || relX > gridRect.width || relY > gridRect.height) {
+            return;
+        }
 
-        const index = parseInt(indexStr, 10);
-        if (currentSelection.includes(index)) return; // Already selected
+        // 10x10 mapping based on percentage width/height
+        const cellWidth = gridRect.width / size; // 10 columns
+        const cellHeight = gridRect.height / size; // 10 rows
+
+        const col = Math.floor(relX / cellWidth);
+        const row = Math.floor(relY / cellHeight);
+
+        // Clamping strictly
+        if (col < 0 || col >= size || row < 0 || row >= size) return;
+
+        // 2D to 1D index
+        const hoverIndex = (row * size) + col;
+        if (currentSelection.includes(hoverIndex)) return; // Already selected
 
         const lastIndex = currentSelection[currentSelection.length - 1];
 
-        if (isAdjacent(lastIndex, index) && isSameDirection(currentSelection, index)) {
-            setCurrentSelection(prev => [...prev, index]);
+        // Ensure consecutive swipe sequence is valid
+        if (isAdjacent(lastIndex, hoverIndex) && isSameDirection(currentSelection, hoverIndex)) {
+            setCurrentSelection(prev => [...prev, hoverIndex]);
             sounds.playPop(); // Satisfying pop on each letter swiped over
+        } else if (!isSameDirection(currentSelection, hoverIndex) && isAdjacent(lastIndex, hoverIndex)) {
+            // User wiggled into a different direction suddenly. Instead of locking up, 
+            // reset the active streak from the first letter to just this brand new second letter direction.
+            if (currentSelection.length >= 2) {
+                const firstIndex = currentSelection[0];
+                if (isAdjacent(firstIndex, hoverIndex)) {
+                    setCurrentSelection([firstIndex, hoverIndex]);
+                    sounds.playPop();
+                }
+            }
         }
     };
 
@@ -195,7 +232,7 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
                                 }}
                                 className={`
                                     flex items-center justify-center relative
-                                    text-2xl sm:text-3xl md:text-4xl font-bold uppercase
+                                    text-[14px] sm:text-2xl md:text-3xl font-bold uppercase
                                     cursor-pointer select-none
                                     border-r border-b border-slate-200
                                     ${isSelected ? 'text-indigo-600 z-10' : 'text-slate-900'}
@@ -216,7 +253,7 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
                                         initial={{ scale: 0, opacity: 1, y: 20 }}
                                         animate={{ scale: [0, 2.5, 2, 0], opacity: [0, 1, 1, 0], y: [20, -30, -50, -60] }}
                                         transition={{ duration: 1.5, ease: "easeOut", delay: staggeredDelay }}
-                                        className="absolute z-50 drop-shadow-xl pointer-events-none text-2xl sm:text-3xl"
+                                        className="absolute z-50 drop-shadow-xl pointer-events-none text-xl sm:text-2xl md:text-3xl"
                                     >
                                         {activeEffect.emoji}
                                     </motion.span>

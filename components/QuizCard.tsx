@@ -33,7 +33,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ question, onSelect, selectedId, sho
   };
 
   return (
-    <div className="bg-slate-800 rounded-[2.5rem] border border-slate-700 shadow-2xl p-6 md:p-10 animate-in fade-in zoom-in duration-300">
+    <div className="bg-slate-800 rounded-[2.5rem] border border-slate-700 shadow-2xl p-4 sm:p-6 md:p-10 animate-in fade-in zoom-in duration-300">
       <div className="flex items-center gap-3 mb-6">
         <span className="inline-block px-4 py-1.5 rounded-full bg-blue-600/20 text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/20">
           {question.category || 'IA'}
@@ -42,15 +42,15 @@ const QuizCard: React.FC<QuizCardProps> = ({ question, onSelect, selectedId, sho
           {getDifficultyLabel(question.difficulty)}
         </span>
       </div>
-      
-      <h2 className="text-2xl md:text-3xl font-black text-white mb-10 leading-tight tracking-tight">
+
+      <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white mb-6 sm:mb-10 leading-tight tracking-tight">
         {question.question_text}
       </h2>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:gap-4">
         {question.options.map((option, idx) => {
-          let buttonClass = "w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 flex items-center group ";
-          
+          let buttonClass = "w-full text-left p-3 sm:p-5 rounded-2xl border-2 transition-all duration-200 flex items-center group ";
+
           if (showCorrect) {
             // Se sèlman si li te chwazi yon repons nou montre koulè vèt/wouj
             if (idx === question.correct_index) {
@@ -74,12 +74,11 @@ const QuizCard: React.FC<QuizCardProps> = ({ question, onSelect, selectedId, sho
               disabled={showCorrect}
               className={buttonClass}
             >
-              <span className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-sm mr-5 shrink-0 transition-colors ${
-                selectedId === idx ? 'bg-white text-blue-600' : 'bg-slate-800 text-blue-400'
-              }`}>
+              <span className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl font-black text-xs sm:text-sm mr-3 sm:mr-5 shrink-0 transition-colors ${selectedId === idx ? 'bg-white text-blue-600' : 'bg-slate-800 text-blue-400'
+                }`}>
                 {String.fromCharCode(65 + idx)}
               </span>
-              <span className="font-bold text-lg">{option}</span>
+              <span className="font-bold text-sm sm:text-lg">{option}</span>
             </button>
           );
         })}
