@@ -738,7 +738,18 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-red-500/30">
+    <div
+      className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans overflow-x-hidden selection:bg-red-500/30"
+      dir="ltr"
+      onPointerDownCapture={() => {
+        // Try to spin up the audio context immediately upon the first user interaction anywhere on the document.
+        try {
+          sounds.init();
+        } catch (e) { }
+      }}
+    >
+      {/* Dynamic Background */}
+
       <header className="bg-slate-800 border-b-4 border-slate-900 p-3 md:p-4 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <button onClick={() => { setView('landing'); setGameState('ready'); }} className="active:scale-95 transition-transform">
@@ -1201,32 +1212,34 @@ const App: React.FC = () => {
       </main>
 
       {/* Lightbox Modal */}
-      {selectedPrizeImage && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300"
-          onClick={() => setSelectedPrizeImage(null)}
-        >
-          <button
-            className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all z-[110]"
+      {
+        selectedPrizeImage && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300"
             onClick={() => setSelectedPrizeImage(null)}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+            <button
+              className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all z-[110]"
+              onClick={() => setSelectedPrizeImage(null)}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
 
-          <div
-            className="max-w-5xl max-h-[90vh] w-full relative animate-in zoom-in duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={selectedPrizeImage}
-              alt="Grand Prize Full View"
-              className="w-full h-full object-contain rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
-            />
+            <div
+              className="max-w-5xl max-h-[90vh] w-full relative animate-in zoom-in duration-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={selectedPrizeImage}
+                alt="Grand Prize Full View"
+                className="w-full h-full object-contain rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Terms of Use */}
       {view === 'terms' && <TermsOfUse onBack={() => setView('home')} />}
@@ -1241,19 +1254,21 @@ const App: React.FC = () => {
       {view === 'privacy' && <PrivacyPolicy onBack={() => setView('home')} />}
 
       {/* Manual Payment Modal */}
-      {manualPaymentInfo && user && (
-        <ManualPaymentModal
-          user={user}
-          amount={manualPaymentInfo.amount}
-          type={manualPaymentInfo.type}
-          contestId={manualPaymentInfo.contestId}
-          onClose={() => setManualPaymentInfo(null)}
-          onSuccess={() => {
-            setManualPaymentInfo(null);
-            fetchUserAndWallet(user.id, session);
-          }}
-        />
-      )}
+      {
+        manualPaymentInfo && user && (
+          <ManualPaymentModal
+            user={user}
+            amount={manualPaymentInfo.amount}
+            type={manualPaymentInfo.type}
+            contestId={manualPaymentInfo.contestId}
+            onClose={() => setManualPaymentInfo(null)}
+            onSuccess={() => {
+              setManualPaymentInfo(null);
+              fetchUserAndWallet(user.id, session);
+            }}
+          />
+        )
+      }
 
       <footer className="mt-auto py-8 mb-20 md:mb-0 border-t border-white/5 bg-slate-900/50">
         <div className="max-w-6xl mx-auto px-6 flex flex-col items-center gap-6">
@@ -1484,7 +1499,7 @@ const App: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </div >
   );
 };
 
