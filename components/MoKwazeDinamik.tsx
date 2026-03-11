@@ -266,7 +266,7 @@ export const MoKwazeDinamik: React.FC<Props> = ({ onExit }) => {
                             >
                                 📺 Gade Piblisite (+15s)
                             </button>
-                            <button onClick={() => setGamePhase('lost')} className="text-slate-400 font-bold uppercase text-xs hover:text-white">
+                            <button onClick={() => { setShowAdMobTrigger(false); setGamePhase('lost'); }} className="text-slate-400 font-bold uppercase text-xs hover:text-white mt-4">
                                 Non mèsi, klike pou pèdi
                             </button>
                         </motion.div>
