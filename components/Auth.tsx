@@ -8,6 +8,7 @@ interface AuthProps {
 
 const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isRecovery, setIsRecovery] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -15,6 +16,25 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const handlePasswordRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.origin,
+      });
+      if (error) throw error;
+      setSuccessMsg("Nou voye yon imèl ba ou pou w chanje kòd sekrè w la. Tcheke bwat lèt ou.");
+    } catch (err: any) {
+      setError(err.message || "Yon erè rive. Eseye ankò.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +105,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
             <span className="text-red-500">Quiz</span>Pam
           </h2>
           <p className="text-slate-300 mt-3 font-bold uppercase text-[11px] tracking-widest bg-slate-900/50 py-1 px-3 rounded-full inline-block">
-            {isLogin ? 'Byenvini ankò !' : 'Kreye kont ou an'}
+            {isRecovery ? 'Rekipere kont ou' : isLogin ? 'Byenvini ankò !' : 'Kreye kont ou an'}
           </p>
         </div>
 
@@ -101,8 +121,8 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
           </div>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-4">
-          {!isLogin && (
+        <form onSubmit={isRecovery ? handlePasswordRecovery : handleAuth} className="space-y-4">
+          {!isLogin && !isRecovery && (
             <>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Vre Non w konplè</label>
@@ -138,16 +158,29 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Kòd Sekrè</label>
-            <input
-              required
-              type="password"
-              className="w-full p-4 bg-slate-900 border border-slate-700 rounded-2xl outline-none focus:ring-2 ring-blue-500 text-white font-bold transition-all"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+          {!isRecovery && (
+            <div className="space-y-1">
+              <div className="flex justify-between items-center pr-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase ml-2 tracking-widest">Kòd Sekrè</label>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => { setIsRecovery(true); setError(null); setSuccessMsg(null); }}
+                    className="text-[9px] font-black text-blue-400 uppercase tracking-tighter hover:text-blue-300 transition-colors"
+                  >
+                    Mwen bliye l?
+                  </button>
+                )}
+              </div>
+              <input
+                required
+                type="password"
+                className="w-full p-4 bg-slate-900 border border-slate-700 rounded-2xl outline-none focus:ring-2 ring-blue-500 text-white font-bold transition-all"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="pt-4">
             <button
@@ -155,18 +188,27 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
               disabled={loading}
               className="w-full btn-bouncy btn-bouncy-primary py-4 rounded-2xl font-black uppercase tracking-widest text-lg disabled:opacity-50 disabled:transform-none disabled:box-shadow-none"
             >
-              {loading ? 'YAP CHACHE...' : isLogin ? 'KONEKTE M' : "ENSKRI M"}
+              {loading ? 'YAP CHACHE...' : isRecovery ? 'VOYE LYEN AN' : isLogin ? 'KONEKTE M' : "ENSKRI M"}
             </button>
           </div>
         </form>
 
-        <div className="text-center mt-8">
-          <button
-            onClick={() => { setIsLogin(!isLogin); setError(null); setSuccessMsg(null); }}
-            className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest"
-          >
-            {isLogin ? "Ou pa gen kont? Kreye youn" : "Ou gen kont deja? Konekte w"}
-          </button>
+        <div className="text-center mt-8 space-y-2">
+          {isRecovery ? (
+            <button
+              onClick={() => { setIsRecovery(false); setError(null); setSuccessMsg(null); }}
+              className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest"
+            >
+              Retounen nan koneksyon
+            </button>
+          ) : (
+            <button
+              onClick={() => { setIsLogin(!isLogin); setError(null); setSuccessMsg(null); }}
+              className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest"
+            >
+              {isLogin ? "Ou pa gen kont? Kreye youn" : "Ou gen kont deja? Konekte w"}
+            </button>
+          )}
         </div>
       </div>
     </div>

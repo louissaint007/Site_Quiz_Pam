@@ -36,10 +36,11 @@ import { AdminContactMessages } from './components/AdminContactMessages';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import { subscribeToMopyonInvites, respondToInvite } from './utils/mopyonMultiplayer';
 import { sounds } from './utils/soundEffects';
+import UpdatePassword from './components/UpdatePassword';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
-  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'leaderboard' | 'finalist-arena' | 'reviews' | 'my-contests' | 'mokwaze' | 'gomoku' | 'terms' | 'faq' | 'contact' | 'privacy'>('landing');
+  const [view, setView] = useState<'landing' | 'home' | 'solo' | 'contest' | 'admin' | 'auth' | 'profile' | 'contest-detail' | 'leaderboard' | 'finalist-arena' | 'reviews' | 'my-contests' | 'mokwaze' | 'gomoku' | 'terms' | 'faq' | 'contact' | 'privacy' | 'update-password'>('landing');
   const [adminTab, setAdminTab] = useState<'stats' | 'questions' | 'contests' | 'users' | 'messages' | 'settings' | 'stories' | 'faqs' | 'support'>('stats');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -457,6 +458,10 @@ const App: React.FC = () => {
       console.log("[INIT] Auth state changed:", event);
       if (!isMounted) return;
 
+      if (event === 'PASSWORD_RECOVERY') {
+        setView('update-password');
+      }
+
       if (event === 'SIGNED_IN' && currentSession) {
         logUserActivity(currentSession.user.id, 'login', { method: 'auth_state_change' });
       }
@@ -595,17 +600,11 @@ const App: React.FC = () => {
     const newScore = score + points;
     const newTotalTime = totalTimeMs + timeSpent;
 
-    if (isCorrect) setScore(newScore);
     if (isCorrect) {
       setScore(newScore);
-      // Assuming 'sounds' is imported and available
-      // For example: import * as sounds from '../utils/sounds';
-      // Or if it's a context/hook: const { sounds } = useSounds();
-      // This line needs 'sounds' to be defined in the scope.
-      // Adding a placeholder for now.
-      // sounds.playSuccess(); // Uncomment if sounds is available
+      sounds.playSuccess();
     } else {
-      // sounds.playError(); // Uncomment if sounds is available
+      sounds.playError();
     }
     setTotalTimeMs(newTotalTime);
 
@@ -686,15 +685,9 @@ const App: React.FC = () => {
 
         if (partError) throw partError;
 
+        if (partError) throw partError;
+
         logUserActivity(user.id, 'join_contest', { contestId: contest.id, title: contest.title, fee: entryFee });
-
-        // 3. Increment current_participants count
-        const { error: updateError } = await supabase
-          .from('contests')
-          .update({ current_participants: (contest.current_participants || 0) + 1 })
-          .eq('id', contest.id);
-
-        if (updateError) console.error("Error updating participant count:", updateError);
 
         await fetchUserAndWallet(user.id, session);
         await fetchContests(); // Refresh contests to show new count
@@ -713,8 +706,41 @@ const App: React.FC = () => {
 
   const redirectToMonCash = async (amount: number, type: 'deposit' | 'entry_fee', contestId?: string) => {
     if (!user) { setView('auth'); return; }
-    logUserActivity(user.id, type === 'deposit' ? 'deposit' : 'join_contest', { amount, method: 'manual_intent', contestId });
-    setManualPaymentInfo({ amount, type, contestId });
+
+    const orderId = `${user.id}__${crypto.randomUUID()}`;
+
+    try {
+      await supabase.from('transactions').insert({
+        id: orderId,
+        user_id: user.id,
+        amount: amount,
+        type: type,
+        status: 'pending',
+        description: type === 'deposit' ? 'Depo Balans' : `Antre Konkou`,
+        reference_id: contestId || null,
+        payment_method: 'MONCASH',
+        metadata: {
+          user_id: user.id,
+          initiated_at: new Date().toISOString()
+        }
+      });
+      fetchUserAndWallet(user.id, session);
+    } catch (err) {
+      console.error("Error creating pending transaction:", err);
+    }
+
+    const params = new URLSearchParams({
+      userId: user.id,
+      username: user.username,
+      amount: amount.toString(),
+      orderId: orderId,
+      type: type,
+      description: type === 'deposit' ? 'Depo Balans QuizPam' : `Antre Konkou`,
+    });
+    if (contestId) params.append('contestId', contestId);
+
+    const url = `${MONCASH_GATEWAY_URL}?${params.toString()}`;
+    window.open(url, '_blank');
   };
 
   const handleMonCashWithdrawal = async (amount: number, phone: string) => {
@@ -798,6 +824,10 @@ const App: React.FC = () => {
 
       <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 flex flex-col min-h-[calc(100vh-100px)] pb-28 md:pb-8">
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl mb-6 font-bold text-center uppercase text-xs">{error}</div>}
+
+        {view === 'update-password' && (
+          <UpdatePassword onComplete={() => setView('home')} />
+        )}
 
         {view === 'landing' && (
           <div className="space-y-24 py-12">
@@ -1387,7 +1417,14 @@ const App: React.FC = () => {
                       initial={{ opacity: 0, y: 20, scale: 0.8 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                      onClick={() => { setView('gomoku'); setIsGameMenuOpen(false); }}
+                      onClick={() => {
+                        if (!user || user.id.startsWith('guest-')) {
+                          setView('auth');
+                        } else {
+                          setView('gomoku');
+                        }
+                        setIsGameMenuOpen(false);
+                      }}
                       className="w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 border-b-4 border-yellow-600 active:translate-y-1 active:border-b-0"
                     >
                       <span className="text-xl">⭕</span> Mòpyon

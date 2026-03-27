@@ -14,6 +14,7 @@ import {
 } from '../utils/mopyonMultiplayer';
 import { MopyonMessage } from '../types';
 import { sounds } from '../utils/soundEffects';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface GomokuProps {
   user: UserProfile;
@@ -547,7 +548,7 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
           )}
 
           {/* Mascot Canvas */}
-          <div className="flex-[0.5] lg:flex-1 min-h-[150px] lg:min-h-[200px] relative bg-slate-100/50 rounded-2xl lg:rounded-3xl border-2 border-slate-900/10 inner-shadow -z-0">
+          <div className="flex-[0.5] lg:flex-1 min-h-[150px] lg:min-h-[200px] relative bg-slate-100 rounded-2xl lg:rounded-3xl border-2 border-slate-900/10 shadow-inner overflow-hidden">
             {xpRewardToast && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.9 }}
@@ -575,15 +576,23 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
               </div>
             )}
 
-            <Canvas camera={{ position: [0, 1.5, 5], fov: 45 }}>
-              <ambientLight intensity={0.5} />
-              <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-              <Suspense fallback={null}>
-                <Mascotte3D gameState={gameState3D} modelUrl={mascotUrl} />
-              </Suspense>
-              <ContactShadows position={[0, -1, 0]} opacity={0.4} scale={5} blur={2} far={4} />
-              <Environment preset="city" />
-            </Canvas>
+            <ErrorBoundary fallback={
+              <div className="flex-1 min-h-[150px] lg:min-h-[200px] flex items-center justify-center p-4 bg-slate-800 rounded-3xl border-2 border-slate-700/50 shadow-inner">
+                <p className="text-slate-400 font-bold text-center text-xs lg:text-sm animate-pulse">
+                  Pati 3D an pa sipòte sou pyès sa a.<br/>Ou kapab jwe kanmenm!
+                </p>
+              </div>
+            }>
+              <Canvas camera={{ position: [0, 1.5, 5], fov: 45 }}>
+                <ambientLight intensity={0.5} />
+                <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
+                <Suspense fallback={null}>
+                  <Mascotte3D gameState={gameState3D} modelUrl={mascotUrl} />
+                </Suspense>
+                <ContactShadows position={[0, -1, 0]} opacity={0.4} scale={5} blur={2} far={4} />
+                <Environment preset="city" />
+              </Canvas>
+            </ErrorBoundary>
           </div>
 
           {/* Score HUD */}
@@ -737,12 +746,26 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
         </div >
 
         {/* Board Panel (Right Side) */}
-        < div className="lg:w-2/3 flex items-center justify-center p-2 lg:p-4 min-h-[400px] w-full flex-grow overflow-hidden relative" >
-          <div className="bg-slate-100 p-2 sm:p-4 md:p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] border-4 lg:border-8 border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,0.8)] lg:shadow-[10px_10px_0_0_rgba(15,23,42,0.8)] relative w-full h-full max-h-[80vh] lg:max-h-none flex items-center justify-center">
+        <div className="lg:w-2/3 flex items-center justify-center p-0 lg:p-4 w-full flex-grow relative">
+          <div className="bg-slate-100 p-1 sm:p-4 md:p-6 lg:p-8 rounded-[1.5rem] lg:rounded-[3rem] border-4 lg:border-8 border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,0.8)] lg:shadow-[10px_10px_0_0_rgba(15,23,42,0.8)] relative w-full h-auto lg:max-h-none flex items-center justify-center">
 
-            {/* Minimalist Grid Texture Overlay effect */}
-            <div className="absolute inset-0 opacity-5 pointer-events-none rounded-[2.5rem]"
-              style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #0f172a 10px, #0f172a 20px)' }}>
+            {/* Minimalist Grid Texture Overlay effect - "La Toile" */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none rounded-[2.5rem] overflow-hidden"
+              style={{ 
+                backgroundImage: 'radial-gradient(circle at center, transparent 0%, #0f172a 100%), url("https://www.transparenttextures.com/patterns/dark-matter.png")',
+                backgroundSize: 'cover'
+              }}>
+              <svg className="absolute inset-0 w-full h-full text-indigo-500/20" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="1" fill="currentColor" />
+                <circle cx="50" cy="50" r="10" fill="none" stroke="currentColor" strokeWidth="0.1" />
+                <circle cx="50" cy="50" r="20" fill="none" stroke="currentColor" strokeWidth="0.1" />
+                <circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" strokeWidth="0.1" />
+                <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.1" />
+                <line x1="50" y1="0" x2="50" y2="100" stroke="currentColor" strokeWidth="0.1" />
+                <line x1="0" y1="50" x2="100" y2="50" stroke="currentColor" strokeWidth="0.1" />
+                <line x1="0" y1="0" x2="100" y2="100" stroke="currentColor" strokeWidth="0.1" />
+                <line x1="100" y1="0" x2="0" y2="100" stroke="currentColor" strokeWidth="0.1" />
+              </svg>
             </div>
 
             {!gameMode ? (
@@ -776,46 +799,70 @@ export const Gomoku: React.FC<GomokuProps> = ({ user, onExit, roomId }) => {
             ) : null}
 
             <div
-              className={`grid relative z-10 bg-white p-1 sm:p-2 rounded-xl sm:rounded-2xl border-2 border-slate-200 transition-opacity w-full max-w-full aspect-square ${multiStatus === 'waiting' && gameMode === 'multiplayer' ? 'opacity-50 pointer-events-none grayscale' : ''}`}
+              className={`grid relative z-10 bg-white/5 backdrop-blur-sm p-1 sm:p-4 rounded-[1rem] sm:rounded-2xl border-2 border-indigo-500/30 transition-opacity w-full max-w-full aspect-square ${multiStatus === 'waiting' && gameMode === 'multiplayer' ? 'opacity-50 pointer-events-none grayscale' : ''}`}
               style={{
-                gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`
+                gridTemplateColumns: `repeat(${BOARD_SIZE - 1}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${BOARD_SIZE - 1}, minmax(0, 1fr))`
               }}
             >
-              {board.map((row, rIndex) =>
-                row.map((cell, cIndex) => {
-                  const isWinNode = isWinningCell(rIndex, cIndex);
-                  return (
-                    <div
-                      key={`${rIndex}-${cIndex}`}
-                      onClick={() => handleCellClick(rIndex, cIndex)}
-                      className={`
-                                      w-full aspect-square border-b-2 border-r-2 border-slate-200
-                                      flex items-center justify-center cursor-pointer relative overflow-visible
-                                      ${board[rIndex][cIndex] === null && !winner ? 'hover:bg-slate-50' : ''}
-                                  `}
-                    >
-                      {/* Cross intersection styling to look like a go board */}
-                      <div className="absolute inset-x-0 top-1/2 h-[1px] bg-slate-300 -z-10"></div>
-                      <div className="absolute inset-y-0 left-1/2 w-[1px] bg-slate-300 -z-10"></div>
+              {/* Vertical and Horizontal lines to create the intersection look */}
+              <div className="absolute inset-0 pointer-events-none flex" style={{ padding: 'inherit' }}>
+                {Array.from({ length: BOARD_SIZE }).map((_, i) => (
+                  <div key={`v-${i}`} className="absolute h-full w-[1px] bg-indigo-500/20" style={{ left: `${(i / (BOARD_SIZE - 1)) * 100}%` }} />
+                ))}
+                {Array.from({ length: BOARD_SIZE }).map((_, i) => (
+                  <div key={`h-${i}`} className="absolute w-full h-[1px] bg-indigo-500/20" style={{ top: `${(i / (BOARD_SIZE - 1)) * 100}%` }} />
+                ))}
+              </div>
 
-                      {cell !== null && (
-                        <div
-                          className={`
-                            max-w-[80%] max-h-[80%] w-full h-full rounded-full shadow-md flex items-center justify-center font-black text-[12px] sm:text-lg md:text-2xl animate-in zoom-in duration-300
-                            ${cell === 'X'
-                              ? 'bg-[#1e3a8a] text-transparent shadow-[inset_-2px_-4px_10px_rgba(0,0,0,0.5),0_4px_6px_rgba(30,58,138,0.5)]'
-                              : 'bg-[#dc2626] text-transparent shadow-[inset_-2px_-4px_10px_rgba(0,0,0,0.5),0_4px_6px_rgba(220,38,38,0.5)]'
-                            }
-                            ${isWinNode ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-100 animate-pulse' : ''}
-                          `}
-                        >
-                          {cell}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+              {/* Intersections (Clickable areas) */}
+              <div className="absolute inset-0 grid" 
+                style={{ 
+                  gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
+                  gridTemplateRows: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
+                  margin: '-2.5%' // Slightly overlap to center icons on intersections
+                }}>
+                {board.map((row, rIndex) =>
+                  row.map((cell, cIndex) => {
+                    const isWinNode = isWinningCell(rIndex, cIndex);
+                    return (
+                      <div
+                        key={`${rIndex}-${cIndex}`}
+                        onClick={() => handleCellClick(rIndex, cIndex)}
+                        className={`
+                          w-full aspect-square flex items-center justify-center cursor-pointer relative z-20
+                          ${board[rIndex][cIndex] === null && !winner ? 'hover:bg-indigo-500/10 rounded-full transition-colors' : ''}
+                        `}
+                      >
+                        {board[rIndex][cIndex] === null && !winner && (
+                           <div className="w-1 h-1 bg-indigo-400/30 rounded-full" />
+                        )}
+                        
+                        {cell !== null && (
+                          <motion.div
+                            initial={{ scale: 0, rotate: -45 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            className={`
+                              w-[85%] h-[85%] rounded-full flex items-center justify-center relative
+                              ${cell === 'X'
+                                ? 'bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.5),inset_0_2px_4px_rgba(255,255,255,0.3)]'
+                                : 'bg-gradient-to-br from-amber-400 to-amber-600 shadow-[0_0_15px_rgba(245,158,11,0.5),inset_0_2px_4px_rgba(255,255,255,0.3)]'
+                              }
+                              ${isWinNode ? 'ring-4 ring-white animate-pulse z-30' : ''}
+                            `}
+                          >
+                            <span className="text-white font-black text-xs sm:text-base md:text-xl drop-shadow-md">
+                              {cell}
+                            </span>
+                            {/* Inner glow for premium feel */}
+                            <div className="absolute inset-1 rounded-full border border-white/20 pointer-events-none" />
+                          </motion.div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
             {/* Multiplayer Turns Overlay Info */}

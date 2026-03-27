@@ -16,6 +16,7 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
     const [isSelecting, setIsSelecting] = useState(false);
     const [currentSelection, setCurrentSelection] = useState<number[]>([]);
     const [gridRect, setGridRect] = useState<DOMRect | null>(null);
+    const [firstClickedIndex, setFirstClickedIndex] = useState<number | null>(null);
     const size = Math.sqrt(grid.length);
 
     // Update dimensions strictly to ensure reliable math
@@ -25,9 +26,15 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
                 setGridRect(gridRef.current.getBoundingClientRect());
             }
         };
-        updateRect();
+        // Initial tiny delay to let layout settle
+        const timer = setTimeout(updateRect, 100);
         window.addEventListener('resize', updateRect);
-        return () => window.removeEventListener('resize', updateRect);
+        window.addEventListener('scroll', updateRect);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', updateRect);
+            window.removeEventListener('scroll', updateRect);
+        };
     }, []);
 
     // Convert 1D index back to x,y
@@ -46,93 +53,150 @@ export const GridDisplay: React.FC<GridDisplayProps> = ({ grid, foundWords, onWo
         return (dx <= 1 && dy <= 1) && !(dx === 0 && dy === 0);
     };
 
-    const isSameDirection = (history: number[], newIndex: number) => {
-        if (history.length < 2) return true;
-
-        const first = getCoords(history[0]);
-        const second = getCoords(history[1]);
-        const current = getCoords(newIndex);
-
-        const dx1 = second.x - first.x;
-        const dy1 = second.y - first.y;
-
-        const expectedX = first.x + (dx1 * history.length);
-        const expectedY = first.y + (dy1 * history.length);
-
-        return current.x === expectedX && current.y === expectedY;
+    // Helper to get all indices in a straight line between two points
+    const getLineIndices = (startIdx: number, endIdx: number) => {
+        const start = getCoords(startIdx);
+        const end = getCoords(endIdx);
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        
+        const steps = Math.max(Math.abs(dx), Math.abs(dy));
+        if (steps === 0) return [startIdx];
+        
+        // Only allow horizontal, vertical, or 45-degree diagonal lines
+        const isHorizontal = dy === 0;
+        const isVertical = dx === 0;
+        const isDiagonal = Math.abs(dx) === Math.abs(dy);
+        
+        if (!isHorizontal && !isVertical && !isDiagonal) return null;
+        
+        const xStep = dx / steps;
+        const yStep = dy / steps;
+        
+        const indices = [];
+        for (let i = 0; i <= steps; i++) {
+            const x = Math.round(start.x + i * xStep);
+            const y = Math.round(start.y + i * yStep);
+            indices.push(y * size + x);
+        }
+        return indices;
     };
+
 
     // Touch & Mouse Handlers
     const handlePointerDown = (index: number) => {
-        setIsSelecting(true);
-        setCurrentSelection([index]);
-        sounds.playPop(); // Initial touch POP
+        if (firstClickedIndex === null) {
+            // First click
+            setFirstClickedIndex(index);
+            setIsSelecting(true);
+            setCurrentSelection([index]);
+            sounds.playPop();
+        } else if (firstClickedIndex === index) {
+            // Cancel selection if clicking the same cell
+            setFirstClickedIndex(null);
+            setIsSelecting(false);
+            setCurrentSelection([]);
+        } else {
+            // Second click: check for line
+            const line = getLineIndices(firstClickedIndex, index);
+            if (line) {
+                setCurrentSelection(line);
+                checkAndSubmitWord(line);
+                setFirstClickedIndex(null);
+                setIsSelecting(false);
+            } else {
+                // Not a valid line, restart selection from here
+                setFirstClickedIndex(index);
+                setCurrentSelection([index]);
+                sounds.playPop();
+            }
+        }
     };
 
     const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        // If we are in click-to-click mode (down was already released but selection stays), 
+        // we might want to show a preview line
         if (!isSelecting || !gridRect) return;
 
-        // Calculate relative coordinates within the grid container
+        // Calculate relative coordinates
         const relX = e.clientX - gridRect.left;
         const relY = e.clientY - gridRect.top;
 
-        // Ensure pointer is actually inside bounds loosely
-        if (relX < 0 || relY < 0 || relX > gridRect.width || relY > gridRect.height) {
+        if (relX < 0 || relY < 0 || relX > gridRect.width || relY > gridRect.height) return;
+
+        const col = Math.floor(relX / (gridRect.width / size));
+        const row = Math.floor(relY / (gridRect.height / size));
+        const hoverIndex = (row * size) + col;
+
+        if (hoverIndex < 0 || hoverIndex >= grid.length) return;
+
+        // If we have a first click, show a preview line to the hover index
+        if (firstClickedIndex !== null && hoverIndex !== firstClickedIndex) {
+            const line = getLineIndices(firstClickedIndex, hoverIndex);
+            if (line) {
+                if (JSON.stringify(line) !== JSON.stringify(currentSelection)) {
+                    setCurrentSelection(line);
+                    sounds.playPop();
+                }
+            } else {
+                // If not a straight line, just show the hover cell if adjacent or just the start
+                const lastIdx = currentSelection[currentSelection.length - 1];
+                if (isAdjacent(lastIdx, hoverIndex) && !currentSelection.includes(hoverIndex)) {
+                     setCurrentSelection(prev => [...prev, hoverIndex]);
+                     sounds.playPop();
+                }
+            }
             return;
         }
 
-        // 10x10 mapping based on percentage width/height
-        const cellWidth = gridRect.width / size; // 10 columns
-        const cellHeight = gridRect.height / size; // 10 rows
-
-        const col = Math.floor(relX / cellWidth);
-        const row = Math.floor(relY / cellHeight);
-
-        // Clamping strictly
-        if (col < 0 || col >= size || row < 0 || row >= size) return;
-
-        // 2D to 1D index
-        const hoverIndex = (row * size) + col;
-        if (currentSelection.includes(hoverIndex)) return; // Already selected
+        // Standard swipe logic (if no first click yet)
+        if (currentSelection.includes(hoverIndex)) {
+            // Backward selection undo
+            if (currentSelection.length >= 2 && hoverIndex === currentSelection[currentSelection.length - 2]) {
+                setCurrentSelection(prev => prev.slice(0, -1));
+                if (navigator.vibrate) navigator.vibrate(20);
+            }
+            return;
+        }
 
         const lastIndex = currentSelection[currentSelection.length - 1];
-
-        // Ensure consecutive swipe sequence is valid
-        if (isAdjacent(lastIndex, hoverIndex) && isSameDirection(currentSelection, hoverIndex)) {
+        if (isAdjacent(lastIndex, hoverIndex)) {
             setCurrentSelection(prev => [...prev, hoverIndex]);
-            sounds.playPop(); // Satisfying pop on each letter swiped over
-        } else if (!isSameDirection(currentSelection, hoverIndex) && isAdjacent(lastIndex, hoverIndex)) {
-            // User wiggled into a different direction suddenly. Instead of locking up, 
-            // reset the active streak from the first letter to just this brand new second letter direction.
-            if (currentSelection.length >= 2) {
-                const firstIndex = currentSelection[0];
-                if (isAdjacent(firstIndex, hoverIndex)) {
-                    setCurrentSelection([firstIndex, hoverIndex]);
-                    sounds.playPop();
-                }
-            }
+            sounds.playPop();
         }
     };
 
+    const checkAndSubmitWord = (selection: number[]) => {
+        if (selection.length < 2) return;
+        
+        const word = selection.map(idx => grid[idx].char).join('');
+        const reverseWord = word.split('').reverse().join('');
+        const wordOwner = grid[selection[0]].isWordPartOf;
+        
+        const isPerfectMatch = wordOwner && selection.every(idx => grid[idx].isWordPartOf === wordOwner);
+
+        if (isPerfectMatch && (word === wordOwner || reverseWord === wordOwner) && !foundWords.includes(wordOwner)) {
+            onWordFound(wordOwner);
+            return true;
+        }
+        return false;
+    };
+
     const handlePointerUp = () => {
-        if (isSelecting && currentSelection.length > 0) {
-            // Form the word from the selected letters
-            const word = currentSelection.map(idx => grid[idx].char).join('');
-            const reverseWord = word.split('').reverse().join('');
-
-            // Check if this path specifically hits a valid word placement in the grid
-            // We check if all selected letters belong to the SAME valid word
-            const wordOwner = grid[currentSelection[0]].isWordPartOf;
-            const isPerfectMatch = wordOwner && currentSelection.every(idx => grid[idx].isWordPartOf === wordOwner);
-
-            // If they perfectly dragged over the correct word, trigger it
-            if (isPerfectMatch && (word === wordOwner || reverseWord === wordOwner) && !foundWords.includes(wordOwner)) {
-                onWordFound(wordOwner);
+        // In click-to-click mode, we don't clear until the second click or word found
+        // However, if the user swiped (more than 2 cells), we can treat it as a swipe selection
+        if (isSelecting && currentSelection.length > 1) {
+            // Check if it was a swipe (held down)
+            // But we'll let the second click logic handle it for simplicity, 
+            // OR check here if they released far from start
+            const found = checkAndSubmitWord(currentSelection);
+            if (found || currentSelection.length > 2) {
+                 setIsSelecting(false);
+                 setCurrentSelection([]);
+                 setFirstClickedIndex(null);
             }
         }
-
-        setIsSelecting(false);
-        setCurrentSelection([]);
+        // If only 1 cell, we keep it for click-to-click
     };
 
     // Category specific visual effects

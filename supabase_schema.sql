@@ -106,10 +106,14 @@ CREATE TABLE IF NOT EXISTS transactions (
 
 -- Trigger function to update wallet balance
 CREATE OR REPLACE FUNCTION update_wallet_balance()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
-  -- We only update for completed transactions
-  IF (NEW.status = 'completed') THEN
+  -- Determine if we should process this transaction
+  -- It must be completed, and either it's new (INSERT) or the status just changed to completed (UPDATE)
+  IF (NEW.status = 'completed') AND (TG_OP = 'INSERT' OR (TG_OP = 'UPDATE' AND (OLD.status IS NULL OR OLD.status != 'completed'))) THEN
     IF (NEW.type = 'deposit' OR NEW.type = 'prize') THEN
       UPDATE wallets 
       SET total_balance = total_balance + NEW.amount,
@@ -118,10 +122,8 @@ BEGIN
           updated_at = NOW()
       WHERE user_id = NEW.user_id;
 
-      -- Also update profile balance for redundancy (if used in UI)
-      UPDATE profiles
-      SET balance_htg = balance_htg + NEW.amount
-      WHERE id = NEW.user_id;
+      -- REMOVED: Redundant profile update that caused double-add
+      -- The profiles table is automatically updated by the sync_wallet_to_profile trigger on the wallets table.
       
     ELSIF (NEW.type = 'withdrawal' OR NEW.type = 'entry_fee') THEN
       UPDATE wallets 
@@ -130,10 +132,7 @@ BEGIN
           updated_at = NOW()
       WHERE user_id = NEW.user_id;
 
-      -- Update profile balance
-      UPDATE profiles
-      SET balance_htg = balance_htg - NEW.amount
-      WHERE id = NEW.user_id;
+      -- REMOVED: Redundant profile update
     END IF;
   END IF;
   RETURN NEW;

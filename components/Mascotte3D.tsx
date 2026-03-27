@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, Suspense } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useSpring, animated } from '@react-spring/three';
@@ -9,12 +9,17 @@ interface Mascotte3DProps {
   modelUrl?: string;
 }
 
+const Model: React.FC<{ url: string }> = ({ url }) => {
+  const { scene } = useGLTF(url);
+  return <primitive object={scene} />;
+};
+
 export const Mascotte3D: React.FC<Mascotte3DProps> = ({ gameState, modelUrl }) => {
   const meshRef = useRef<THREE.Group>(null);
 
-  // Load the downloaded 3D model or custom
-  const urlToParse = modelUrl || '/mascotte.glb';
-  const { scene } = useGLTF(urlToParse);
+  // Fallback to a safe box if model is missing or loading
+  // We know '/mascotte.glb' is missing, so we'll only try to load if it's a custom URL
+  const validModelUrl = modelUrl && modelUrl !== '/mascotte.glb' ? modelUrl : null;
 
   // Animate based on game state using react-spring for 3D overall grouping wrapper
   const { position, rotation, scale } = useSpring({
@@ -38,12 +43,26 @@ export const Mascotte3D: React.FC<Mascotte3DProps> = ({ gameState, modelUrl }) =
 
   return (
     <animated.group ref={meshRef} position={position as any} rotation={rotation as any} scale={scale as any}>
-      {/* We clone or drop the scene as primitive directly. In React Three Fiber, 
-            Primitive handles the generic GLTF objects safely */}
-      <primitive object={scene} />
+      {validModelUrl ? (
+        <Suspense fallback={
+          <mesh>
+            <boxGeometry args={[0.8, 1.2, 0.8]} />
+            <meshStandardMaterial color="#6366f1" opacity={0.5} transparent />
+          </mesh>
+        }>
+          <Model url={validModelUrl} />
+        </Suspense>
+      ) : (
+        /* Fallback 3D Character (Simple Box with "Face") */
+        <mesh>
+          <boxGeometry args={[1, 1.5, 1]} />
+          <meshStandardMaterial color={gameState === 'win' ? '#fbbf24' : '#6366f1'} />
+          <mesh position={[0, 0.4, 0.51]}>
+            <planeGeometry args={[0.6, 0.2]} />
+            <meshStandardMaterial color="white" />
+          </mesh>
+        </mesh>
+      )}
     </animated.group>
   );
 };
-
-// Preload the default model
-useGLTF.preload('/mascotte.glb');

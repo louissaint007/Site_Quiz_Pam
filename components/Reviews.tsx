@@ -113,7 +113,7 @@ const Reviews: React.FC<ReviewsProps> = ({ user }) => {
             )}
 
             <div className="text-center space-y-4">
-                <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase mb-4">Avis <span className="text-red-500">Kliyan</span></h1>
+                <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase mb-4">Avi <span className="text-red-500">Kliyan</span></h1>
                 <p className="text-lg text-slate-400 max-w-md mx-auto">Sa patisipan yo ap di sou QuizPam.</p>
             </div>
 
@@ -121,7 +121,7 @@ const Reviews: React.FC<ReviewsProps> = ({ user }) => {
                 {/* Review Form */}
                 <div className="lg:col-span-1">
                     <div className="bg-slate-800/60 backdrop-blur-xl rounded-[2.5rem] border border-white/5 p-8 sticky top-24">
-                        <h3 className="text-2xl font-black text-white mb-6 uppercase tracking-tighter">Bay avis pa w</h3>
+                        <h3 className="text-2xl font-black text-white mb-6 uppercase tracking-tighter">Bay avi pa w</h3>
 
                         {user ? (
                             <form onSubmit={handleSubmit} className="space-y-6">
@@ -154,7 +154,7 @@ const Reviews: React.FC<ReviewsProps> = ({ user }) => {
                         ) : (
                             <div className="text-center space-y-6 py-8">
                                 <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center text-3xl mx-auto opacity-50">🔒</div>
-                                <p className="text-slate-400 text-sm font-bold">Fòk ou konekte pou ou ka bay yon avis.</p>
+                                <p className="text-slate-400 text-sm font-bold">Fòk ou konekte pou ou ka bay yon avi.</p>
                             </div>
                         )}
                     </div>
@@ -165,11 +165,11 @@ const Reviews: React.FC<ReviewsProps> = ({ user }) => {
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-20 grayscale opacity-20">
                             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-white">Chaje avis yo...</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white">Chaje avi yo...</p>
                         </div>
                     ) : reviews.length === 0 ? (
                         <div className="text-center py-20 bg-slate-800/20 rounded-[2.5rem] border-2 border-dashed border-slate-700">
-                            <p className="text-slate-500 font-black uppercase tracking-widest text-sm">Pa gen avis ankò. Se ou ki premye!</p>
+                            <p className="text-slate-500 font-black uppercase tracking-widest text-sm">Pa gen avi ankò. Se ou ki premye!</p>
                         </div>
                     ) : (
                         reviews.map((review) => (
