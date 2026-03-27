@@ -88,6 +88,7 @@ const UpdatePassword: React.FC<UpdatePasswordProps> = ({ onComplete }) => {
               <input
                 type="password"
                 required
+                placeholder="Konfime nouvo kòd sekrè a..."
                 className="w-full p-4 bg-slate-900 border border-slate-700 rounded-2xl outline-none focus:ring-2 ring-blue-500 text-white font-bold transition-all"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

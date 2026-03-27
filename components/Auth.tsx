@@ -25,7 +25,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: window.location.origin,
+        redirectTo: 'https://quiz-pam.vercel.app/',
       });
       if (error) throw error;
       setSuccessMsg("Nou voye yon imèl ba ou pou w chanje kòd sekrè w la. Tcheke bwat lèt ou.");
